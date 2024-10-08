@@ -4,6 +4,7 @@ import (
 	"context"
 	"template/go-api-server/api/controllers"
 	"template/go-api-server/api/handlers"
+	"template/go-api-server/api/middlewares"
 	"template/go-api-server/config"
 	"template/go-api-server/pkg/service"
 
@@ -23,9 +24,11 @@ func main() {
 		RegisterUtilsPackage()
 
 	handlers := handlers.NewRouteHandlerImpl(services)
+	middlewares := middlewares.NewMiddlewaresClient(services)
 
 	routes := gin.Default()
-
+	routes.Use(gin.Recovery())
+	routes.Use(middlewares.RequestLogger())
 	controllers.RegisterControllers(routes, handlers)
 
 	routes.Run() // listen and serve on 0.0.0.0:8080

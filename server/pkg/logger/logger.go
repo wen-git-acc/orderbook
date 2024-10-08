@@ -7,10 +7,10 @@ import (
 
 type LoggerClientInterface interface {
 	GetLoggerWithProfile(profileName string) LoggerClientInterface
-	Debug(message string)
-	Info(message string)
-	Warn(message string)
-	Error(message string)
+	Debug(message string, args ...interface{})
+	Info(message string, args ...interface{})
+	Warn(message string, args ...interface{})
+	Error(message string, args ...interface{})
 }
 
 type LoggerClient struct {
@@ -34,18 +34,18 @@ func (l *LoggerClient) GetLoggerWithProfile(name string) LoggerClientInterface {
 	}
 }
 
-func (l *LoggerClient) Debug(message string) {
-	l.logger.Debug(message, slog.String("name", l.name))
+func (l *LoggerClient) Debug(message string, args ...interface{}) {
+	l.logger.Debug(message, append([]interface{}{slog.String("name", l.name)}, args...)...)
 }
 
-func (l *LoggerClient) Info(message string) {
-	l.logger.Info(message, slog.String("name", l.name))
+func (l *LoggerClient) Info(message string, args ...interface{}) {
+	l.logger.Info(message, append([]interface{}{slog.String("name", l.name)}, args...)...)
 }
 
-func (l *LoggerClient) Warn(message string) {
-	l.logger.Warn(message, slog.String("name", l.name))
+func (l *LoggerClient) Warn(message string, args ...interface{}) {
+	l.logger.Warn(message, append([]interface{}{slog.String("name", l.name)}, args...)...)
 }
 
-func (l *LoggerClient) Error(message string) {
-	l.logger.Error(message, slog.String("name", l.name))
+func (l *LoggerClient) Error(message string, args ...interface{}) {
+	l.logger.Error(message, append([]interface{}{slog.String("name", l.name)}, args...)...)
 }
