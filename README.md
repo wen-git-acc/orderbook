@@ -43,6 +43,7 @@ This allowed you to run the project and debug the code in Visual Studio Code.
       "env": {
         "DEBUG": "true",
         "MODE": "development",
+        "SECRET_POSTGRES_DB_PASSWORD": "postgres_password",
       },
       "program": "${workspaceFolder}/server/cmd/gin"
     },
@@ -60,4 +61,19 @@ This allowed you to run the project and debug the code in Visual Studio Code.
     }
   ]
 }
+```
+## Environment Configuration
+
+Staging and Production might not be useful as we could be using configmaps and secret for k8s.
+
+## Setup local postgresql database
+
+### Start postgresql in your local
+
+Please change the launch.json and environment variable respectively if you have set up user and password for your db.
+
+```shell
+$ brew install postgresql
+
+$ brew services start postgresql
 ```
