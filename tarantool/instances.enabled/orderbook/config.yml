@@ -4,9 +4,9 @@ credentials:
       password: '123456'
       privileges:
       - permissions: [ read, write ]
-        spaces: [ order_book ]
+        spaces: [ market_price ]
       - permissions: [ execute ]
-        functions: [ match_orders ]
+        functions: [ get_market_price ]
 
 groups:
   group001:

@@ -30,37 +30,37 @@ This allowed you to run the project and debug the code in Visual Studio Code.
 
 ```json
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-  "version": "0.1.0",
-  "configurations": [
-    {
-      "name": "Launch Go",
-      "type": "go",
-      "request": "launch",
-      "mode": "auto",
-      "env": {
-        "DEBUG": "true",
-        "MODE": "development",
-        "SECRET_POSTGRES_DB_PASSWORD": "postgres_password",
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.1.0",
+    "configurations": [
+      {
+        "name": "Launch Go",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "env": {
+          "DEBUG": "true",
+          "MODE": "development",
+          "SECRET_POSTGRES_DB_PASSWORD": "postgres_password",
+        },
+        "program": "${workspaceFolder}/server/cmd/gin"
       },
-      "program": "${workspaceFolder}/server/cmd/gin"
-    },
-    {
-      "name": "Launch Go dlv-dap",
-      "type": "go",
-      "request": "attach",
-      "mode": "remote",
-      "remotePath": "${workspaceFolder}/server/cmd/gin",
-      "port": 4040,
-      "host": "127.0.0.1",
-      "apiVersion": 2,
-      "debugAdapter": "dlv-dap", // legacy option doesn't work
-      "showLog": true
-    }
-  ]
-}
+      {
+        "name": "Launch Go Cli",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "env": {
+          "DEBUG": "true",
+          "MODE": "development",
+          "SECRET_POSTGRES_DB_PASSWORD": "postgres_password",
+        },
+        "program": "${workspaceFolder}/server/cmd/cli"
+      }
+    ]
+  }
 ```
 ## Environment Configuration
 
