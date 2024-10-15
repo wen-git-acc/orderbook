@@ -71,6 +71,22 @@ box.space.order_book:create_index('primary', {
     parts = {1, 'string'},  -- uniqueKey (userid:price:side) entry price
     if_not_exists = true
 })
+box.space.order_book:create_index('market_side_index',{
+    parts = {
+        3, 'string',  -- market
+        4, 'string',   -- entry price
+    },
+    if_not_exists = true,
+    unique=false
+})
+box.space.order_book:create_index('userid_index',{
+    parts = {
+        5, 'string',  -- user_id
+    },
+    if_not_exists = true,
+    unique=false
+})
+
 box.space.order_book:create_index('market_side_price_timestamp_index', {
     type = 'TREE',
     parts = {
@@ -173,121 +189,11 @@ box.schema.func.create('create_user_wallet_balance', {if_not_exists = true})
 
 -- Creating function for orderbooks --
 
--- Getting orders for long orders --
--- function get_orders_by_price(market, side, price)
---     local results = {}
-
---     -- Select orders using the composite index
---     -- Using the market, side and sorting by price and created_at
---     local orders = box.space.order_book:index('market_side_price_timestamp_index'):select({market, side})
---     print("orders retrieve")
---     print(orders)
---     io.flush()
---     -- Build the result array
---     for _, order in ipairs(orders) do
---         local price = order[1]  -- price
---         local user_info = {order[4], order[5]}  -- user_id, position_size, entry_price
-
---         -- Check if there's already a price entry in results
---         if not results[price] then
---             results[price] = {price, {user_info}}  -- Create a new entry if it doesn't exist
---         else
---             table.insert(results[price][2], user_info)  -- Append user info to existing price entry
---         end
---     end
-
---     -- Convert results from table to array
---     local result_array = {}
---     for _, value in pairs(results) do
---         table.insert(result_array, value)
---     end
-
-
---     -- table.sort(result, function(a, b) return a[1] < b[1] end)
-
-
---     --     -- Sort the result array in descending order by price
---     --     table.sort(result_array, function(a, b)
---     --         return a[1] > b[1]  -- Sort by price in descending order
---     --     end)
-
-
-
---     return result_array
--- end
-
--- Getting orders for short orders --
-
-
-
-
-
-function get_orders_by_market_side_and_price(market, side, price)
-    local results = {}
-
-    -- Determine the iterator based on the comparator
-    local iterator
-    if side == -1 then
-        -- Short will retrieved bid orders
-        iterator = box.index.LE
-    else
-        -- Long will retrieved ask orders
-        iterator = box.index.GE
-    end
- 
-
-    -- Select orders using the composite index with the specified price condition
-    local orders = box.space.order_book.index.market_side_price_timestamp_index:select(
-        {market, side, price},  -- Include the price in the selection criteria
-        {iterator = iterator, limit = 100}  -- Use the selected iterator
-    )
-
-    -- Build the result array
-    for _, order in ipairs(orders) do
-        local order_price = order[1]  -- price
-        local user_info = {order[4], order[5], order[6]}  -- user_id, position_size, entry_price
-        print("user_info")
-        if not results[order_price] then
-            results[order_price] = {order_price, {user_info}}  -- Create a new entry if it doesn't exist
-        else
-            table.insert(results[order_price][2], user_info)  -- Append user info to existing price entry
-        end
-
-        -- -- Check if the order price meets the threshold
-        -- if (comparator == "LE" and order_price <= price) or (comparator == "GE" and order_price >= price) then
-        --     -- Check if there's already a price entry in results
-        --     if not results[order_price] then
-        --         results[order_price] = {order_price, {user_info}}  -- Create a new entry if it doesn't exist
-        --     else
-        --         table.insert(results[order_price][2], user_info)  -- Append user info to existing price entry
-        --     end
-        -- end
-    end
-
-
-    -- Convert results from table to array
-    local result_array = {}
-    for _, value in pairs(results) do
-        table.insert(result_array, value)
-    end
-
-    print(result_array)
-
-    -- -- Sort the result array in descending order by price
-    -- table.sort(result_array, function(a, b)
-    --     return a[1] > b[1]  -- Sort by price in descending order
-    -- end)
-
-    return result_array
-end
-box.schema.func.create('get_orders_by_market_side_and_price', {if_not_exists = true})
-
-
 
 --- Insert Order Data to order book --
-function insert_order_data(primary_key,price, market, side, user_id, position_size)
+function insert_order_data(primary_key,price, market, side, user_id, position_size, created_at)
     local existing_order = get_order_by_primary_key(primary_key)
-    local created_at = os.time()
+    -- local created_at = os.time()
     local position_size = tonumber(position_size)
 
     if existing_order then
@@ -305,17 +211,18 @@ box.schema.func.create('insert_order_data', {if_not_exists = true})
 
 
 -- Get Order by Price and User ID --
-function get_order_by_price_and_user_id(user_id, price)
-    local result = box.space.order_book.index.user_price_index:select({user_id, price})
-    if #result > 0 then
-        return result[1]
-    else
-        return nil
-    end
-end
-box.schema.func.create('get_order_by_price_and_user_id', {if_not_exists = true})
+-- function get_order_by_price_and_user_id(user_id, price)
+--     local result = box.space.order_book.index.user_price_index:select({user_id, price})
+--     if #result > 0 then
+--         return result[1]
+--     else
+--         return nil
+--     end
+-- end
+-- box.schema.func.create('get_order_by_price_and_user_id', {if_not_exists = true})
 
 
+-- Get order by primary key --
 function get_order_by_primary_key(primaryKey)
     local result = box.space.order_book.index.primary:select({primaryKey})
     if #result > 0 then

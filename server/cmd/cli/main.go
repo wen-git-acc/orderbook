@@ -71,14 +71,54 @@ func main() {
 
 	//Orderbooks
 	// insertNewOrder(conn, 90.2, "BTC", 1, "userC", 2.0)
+	// time.Sleep(1 * time.Second)
 	// insertNewOrder(conn, 123.12, "BTC", 1, "userA", 10.0)
+	// time.Sleep(1 * time.Second)
+
 	// insertNewOrder(conn, 123.12, "BTC", 1, "userC", 3.0)
+	// time.Sleep(1 * time.Second)
+
 	// insertNewOrder(conn, 300.2, "BTC", 1, "userD", 2.0)
+	// time.Sleep(1 * time.Second)
+
 	// insertNewOrder(conn, 90.2, "BTC", -1, "userC", 2.0)
+	// time.Sleep(1 * time.Second)
+
 	// insertNewOrder(conn, 123.12, "BTC", -1, "userA", 10.0)
+	// time.Sleep(1 * time.Second)
+
 	// insertNewOrder(conn, 123.12, "BTC", -1, "userC", 3.0)
+	// time.Sleep(1 * time.Second)
+
 	// insertNewOrder(conn, 300.2, "BTC", -1, "userD", 2.0)
-	getAllOrders(conn)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 90.2, "ETH", 1, "userC", 2.0)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 123.12, "ETH", 1, "userA", 10.0)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 123.12, "ETH", 1, "userC", 3.0)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 300.2, "ETH", 1, "userD", 2.0)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 90.2, "ETH", -1, "userC", 2.0)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 123.12, "ETH", -1, "userA", 10.0)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 123.12, "ETH", -1, "userC", 3.0)
+	// time.Sleep(1 * time.Second)
+
+	// insertNewOrder(conn, 300.2, "ETH", -1, "userD", 2.0)
+	// time.Sleep(1 * time.Second)
+
+	// getAllOrders(conn)
+	getOrdersByMarketAndSide(conn, "ETH", -1)
 	// getOrder(conn, "123", 123.12)
 
 	// getOrder(conn, "123", 123.12)
@@ -180,85 +220,44 @@ func createUserWalletBalance(conn *tarantool.Connection, user_id string, balance
 	return err
 }
 
-// orderbooks
-// func getMarketOrderBook(conn *tarantool.Connection, market_id string) (map[string]interface{}, error) {
-// 	// Get user wallet balance
-// 	result, err := conn.Do(
-// 		tarantool.NewCallRequest("get_market_order_book").Args([]interface{}{market_id}), // Ensure this matches the space format
-// 	).Get()
+//Orderbook
 
-// 	if err != nil {
-// 		fmt.Println("Got an error:", err)
-// 	}
+func insertNewOrder(conn *tarantool.Connection, price float64, market string, side int, userId string, positionSize float64) error {
+	timestamp := time.Now().Unix()
+	fmt.Println("timestamp", timestamp)
+	primaryKey := fmt.Sprintf("%s:%.2f:%d:%s", userId, price, side, market)
+	sideStr := fmt.Sprintf("%d", side)
+	// Update user wallet balance
+	_, err := conn.Do(
+		tarantool.NewCallRequest("insert_order_data").Args([]interface{}{primaryKey, price, market, sideStr, userId, positionSize, timestamp}), // Ensure this matches the space format
+	).Get()
 
-// 	if len(result) > 0 {
-// 		return result[0].(map[string]interface{}), nil
-// 	}
+	if err != nil {
+		fmt.Println("Got an error:", err)
+	}
+	return err
+}
 
-// 	return nil, err
-// }
-
-// func updateMarketOrderBook(conn *tarantool.Connection, market_id string, order_book map[string]interface{}) error {
+// func getOrder(conn *tarantool.Connection, userId string, price float64) error {
 // 	// Update user wallet balance
-// 	_, err := conn.Do(
-// 		tarantool.NewCallRequest("update_market_order_book").Args([]interface{}{market_id, order_book}), // Ensure this matches the space format
+// 	result, err := conn.Do(
+// 		tarantool.NewCallRequest("get_order_by_price_and_user_id").Args([]interface{}{userId, price}), // Ensure this matches the space format
 // 	).Get()
 
 // 	if err != nil {
 // 		fmt.Println("Got an error:", err)
 // 	}
+// 	fmt.Println("result", result)
 
 // 	return err
 // }
 
-func insertNewOrder(conn *tarantool.Connection, price float64, market string, side int, userId string, positionSize float64) error {
-	primaryKey := fmt.Sprintf("%s_%.2f_%d", userId, price, side)
-	sideStr := fmt.Sprintf("%d", side)
-	// Update user wallet balance
-	_, err := conn.Do(
-		tarantool.NewCallRequest("insert_order_data").Args([]interface{}{primaryKey, price, market, sideStr, userId, positionSize}), // Ensure this matches the space format
-	).Get()
-
-	if err != nil {
-		fmt.Println("Got an error:", err)
-	}
-	return err
-}
-
-func getOrder(conn *tarantool.Connection, userId string, price float64) error {
-	// Update user wallet balance
-	result, err := conn.Do(
-		tarantool.NewCallRequest("get_order_by_price_and_user_id").Args([]interface{}{userId, price}), // Ensure this matches the space format
-	).Get()
-
-	if err != nil {
-		fmt.Println("Got an error:", err)
-	}
-	fmt.Println("result", result)
-
-	return err
-}
-
-func getOrderByPrimaryKey(conn *tarantool.Connection, userId string, price float64, side int) error {
-	primaryKey := fmt.Sprintf("%s_%.2f_%d", userId, price, side)
+func getOrderByPrimaryKey(conn *tarantool.Connection, userId string, price float64, side int, market string) error {
+	primaryKey := fmt.Sprintf("%s:%.2f:%d:%s", userId, price, side, market)
 
 	// Update user wallet balance
 	result, err := conn.Do(
 		tarantool.NewCallRequest("get_order_by_primary_key").Args([]interface{}{primaryKey}), // Ensure this matches the space format
-	).Get()
-
-	if err != nil {
-		fmt.Println("Got an error:", err)
-	}
-	fmt.Println("result", result)
-
-	return err
-}
-
-// To get sell orders
-func getAskOrderBooksByPrice(conn *tarantool.Connection, market string, side int, price float64) error {
-	result, err := conn.Do(
-		tarantool.NewCallRequest("get_orders_by_market_side_and_price").Args([]interface{}{market, side, price}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {
@@ -287,81 +286,20 @@ func getAllOrders(conn *tarantool.Connection) error {
 	return err
 }
 
-func getAskOrderBooksByPriceSelect(conn *tarantool.Connection, market string, userSide int, price float64) error {
-
-	var iterator tarantool.Iter
-	if userSide == 1 {
-		iterator = tarantool.IterGe
-	} else {
-		iterator = tarantool.IterLe
-	}
-
-	marketSide := -1 * userSide
-	fmt.Println("userSide", userSide)
-	fmt.Println("marketSide", marketSide)
-	fmt.Println("price", price)
-	fmt.Println("iterator", iterator)
-
-	result := []interface{}{}
-	// fmt.Println("result", result)
-
-	var err error
-
-	if userSide == 1 {
-		result, err = conn.Do(
-			tarantool.NewSelectRequest("order_book").
-				Index("market_side_price_timestamp_index").
-				Key([]interface{}{market, marketSide, price}).
-				Iterator(tarantool.IterGe),
-		).Get()
-	} else {
-		result, err = conn.Do(
-			tarantool.NewSelectRequest("order_book").
-				Index("market_side_price_timestamp_index").
-				Key([]interface{}{market, marketSide, price}).
-				Iterator(tarantool.IterLe),
-		).Get()
-	}
-
-	// result, err := conn.Do(
-	// 	tarantool.NewSelectRequest("order_book").
-	// 		Index("market_side_price_timestamp_index").
-	// 		Key([]interface{}{market, marketSide, price}).
-	// 		Iterator(tarantool.IterLe),
-	// ).Get()
+// with index request
+func getOrdersByMarketAndSide(conn *tarantool.Connection, market string, side int) error {
+	sideStr := fmt.Sprintf("%d", side)
+	result, err := conn.Do(
+		tarantool.NewSelectRequest("order_book").
+			Index("market_side_index").
+			Key([]interface{}{market, sideStr}).
+			Iterator(tarantool.IterEq),
+	).Get()
 
 	if err != nil {
 		fmt.Println("Got an error:", err)
 	}
 	fmt.Println("result", result)
-
-	return err
-}
-
-func getAskOrderBooksByPriceSelect2(conn *tarantool.Connection, market string, userSide int, price float64) error {
-	iterator := tarantool.IterGe
-	if userSide != 1 {
-		iterator = tarantool.IterLe
-	}
-
-	marketSide := -1 * userSide
-	fmt.Printf("userSide: %d, marketSide: %d, price: %.2f, iterator: %v\n", userSide, marketSide, price, iterator)
-
-	var result []interface{}
-	var err error
-
-	result, err = conn.Do(
-		tarantool.NewSelectRequest("order_book").
-			Index("market_side_price_timestamp_index").
-			Iterator(tarantool.IterGe).
-			Key([]interface{}{market, marketSide, price}),
-	).Get()
-
-	if err != nil {
-		fmt.Println("Got an error:", err)
-	} else {
-		fmt.Println("result", result)
-	}
 
 	return err
 }
