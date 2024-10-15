@@ -32,6 +32,12 @@ func (c *TarantoolClient) convertToInt(data interface{}) int {
 }
 
 func (c *TarantoolClient) calculateAccountMargin(accountEquity float64, totalAccountNotional float64) float64 {
+	if totalAccountNotional == 0 {
+		if accountEquity > 0 {
+			return float64(^uint(0) >> 1) // Return the maximum float64 value (represents high margin)
+		}
+		return 0 //if both zero
+	}
 	return accountEquity / totalAccountNotional
 }
 

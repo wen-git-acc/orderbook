@@ -11,9 +11,10 @@ const (
 
 type TarantoolMarketPriceConnInterface interface {
 	GetMarketPriceByMarket(market string) float64
+	UpdateMarketPrice(market string, marketPrice float64)
 }
 
-func (c *TarantoolClient) updateMarketPrice(market string, marketPrice float64) {
+func (c *TarantoolClient) UpdateMarketPrice(market string, marketPrice float64) {
 	conn := c.conn
 
 	// Upsert a market price

@@ -24,10 +24,15 @@ func (c *TarantoolClient) IsUserRegistered(userID string) bool {
 		tarantool.NewCallRequest(getUserWalletBalance).Args([]interface{}{userID}), // Ensure this matches the space format
 	).Get()
 
-	data := result[0]
 	if err != nil {
 		c.logger.Error("Got an error:", err)
 	}
+
+	var data interface{}
+	if len(result) > 0 {
+		data = result[0]
+	}
+
 	if data != nil {
 		return true
 	}
@@ -46,7 +51,10 @@ func (c *TarantoolClient) GetUserWalletBalance(user_id string) float64 {
 		c.logger.Error("Got an error:", err)
 	}
 
-	data := result[0]
+	var data interface{}
+	if len(result) > 0 {
+		data = result[0]
+	}
 	if data != nil {
 		return c.convertToFloat64(data)
 	}

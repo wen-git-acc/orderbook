@@ -105,7 +105,7 @@ func loadPgConfig(appCfg *AppConfig, mode Mode) {
 
 	// Load the password from the local environment
 	if mode == Development {
-		pgSqlConfg.PostgresDbPassword = loadFromEnvironment("POSTGRES_DB_PASSWORD", "")
+		pgSqlConfg.PostgresDbPassword = loadFromEnvironment("POSTGRES_DB_PASSWORD", "postgres_password")
 	}
 
 	appCfg.PgSql = &PgSqlMasterSlave{
@@ -121,7 +121,7 @@ func loadTarantoolConfig(appCfg *AppConfig, mode Mode) {
 	}
 
 	if mode == Development {
-		tarantoolConfig.Password = loadFromEnvironment("TARANTOOL_PASSWORD", "")
+		tarantoolConfig.Password = loadFromEnvironment("TARANTOOL_PASSWORD", "123456")
 	}
 
 	appCfg.Tarantool = tarantoolConfig

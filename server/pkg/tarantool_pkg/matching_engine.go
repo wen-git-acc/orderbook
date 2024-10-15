@@ -14,7 +14,7 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 	if len(sortedOrderBook) > 0 {
 		if sortedOrderBook[0][0].Price > order.Price {
 			c.InsertNewOrder(order)
-			c.updateUserWalletAmount(order.UserId, order.PositionSize*order.Price)
+			c.updateUserWalletAmountWithDeduction(order.UserId, order.PositionSize*order.Price)
 			return true
 		}
 	}
@@ -27,6 +27,7 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 		for _, makerOrder := range makerOrders {
 			if order.PositionSize == 0 {
 				//End of order matching
+				c.logger.Info("order matching end, fully matched", "orderUser", order.UserId, "side", order.Side)
 				return true
 			}
 
@@ -35,6 +36,12 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 			}
 
 			executionPrice := makerOrder.Price
+
+			if executionPrice > order.Price {
+				//End of order matching
+				c.logger.Info("order matching end, partially matched", "orderUser", order.UserId, "side", order.Side)
+				return true
+			}
 
 			userExecutionDetails := &ExecutionDetailsStruct{
 				UserId:         order.UserId,
@@ -70,12 +77,14 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 				userExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkUserMargin := c.checkAccountMargin(userExecutionDetails, false)
 				if !checkUserMargin {
+					c.logger.Info("user margin less than 10%", "orderUser", order.UserId)
 					return false
 				}
 
 				makerExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkMakerMargin := c.checkAccountMargin(makerExecutionDetails, true)
 				if !checkMakerMargin {
+					c.logger.Info("user margin less than 10%", "maker", makerOrder.UserId)
 					c.deleteMakerOrderFromOrderBook(makerOrder)
 					continue
 				}
@@ -85,7 +94,7 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 				// Insert Match Position for user and maker
 				userMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(userMatchPositionDetails)
-				c.updateUserWalletAmount(order.UserId, executionPositionSize*executionPrice)
+				c.updateUserWalletAmountWithDeduction(order.UserId, executionPositionSize*executionPrice)
 				makerMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(makerMatchPositionDetails)
 
@@ -93,7 +102,7 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 				c.DeleteOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market)
 
 				// Update Market Price
-				c.updateMarketPrice(market, executionPrice)
+				c.UpdateMarketPrice(market, executionPrice)
 				c.logger.Info("matchingEngineForShortOrder", "executionPositionSize", executionPositionSize, "executionPrice", executionPrice, "orderUser", order.UserId, "maker", makerOrder.UserId)
 
 			} else {
@@ -102,12 +111,14 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 				userExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkUserMargin := c.checkAccountMargin(userExecutionDetails, false)
 				if !checkUserMargin {
+					c.logger.Info("user margin less than 10%", "orderUser", order.UserId)
 					return false
 				}
 
 				makerExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkMakerMargin := c.checkAccountMargin(makerExecutionDetails, true)
 				if !checkMakerMargin {
+					c.logger.Info("user margin less than 10%", "maker", makerOrder.UserId)
 					c.deleteMakerOrderFromOrderBook(makerOrder)
 					continue
 				}
@@ -118,7 +129,7 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 				// Insert Match Position for user and maker
 				userMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(userMatchPositionDetails)
-				c.updateUserWalletAmount(order.UserId, executionPositionSize*executionPrice)
+				c.updateUserWalletAmountWithDeduction(order.UserId, executionPositionSize*executionPrice)
 				makerMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(makerMatchPositionDetails)
 
@@ -129,7 +140,7 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 					c.updateOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market, makerOrder.PositionSize)
 				}
 				// Update Market Price
-				c.updateMarketPrice(market, executionPrice)
+				c.UpdateMarketPrice(market, executionPrice)
 				c.logger.Info("matchingEngineForShortOrder", "executionPositionSize", executionPositionSize, "executionPrice", executionPrice, "orderUser", order.UserId, "maker", makerOrder.UserId)
 
 			}
@@ -151,7 +162,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 	if len(sortedOrderBook) > 0 {
 		if sortedOrderBook[len(sortedOrderBook)-1][0].Price < order.Price {
 			c.InsertNewOrder(order)
-			c.updateUserWalletAmount(order.UserId, order.PositionSize*order.Price)
+			c.updateUserWalletAmountWithDeduction(order.UserId, order.PositionSize*order.Price)
 			return true
 		}
 	}
@@ -167,6 +178,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 
 			if order.PositionSize == 0 {
 				//End of order matching
+				c.logger.Info("order matching end, fully matched", "orderUser", order.UserId, "side", order.Side)
 				return true
 			}
 
@@ -175,6 +187,12 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 			}
 
 			executionPrice := makerOrder.Price
+
+			if executionPrice < order.Price {
+				//End of order matching
+				c.logger.Info("order matching end, partially matched", "orderUser", order.UserId, "side", order.Side)
+				return true
+			}
 
 			userExecutionDetails := &ExecutionDetailsStruct{
 				UserId:         order.UserId,
@@ -210,12 +228,14 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 				userExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkUserMargin := c.checkAccountMargin(userExecutionDetails, false)
 				if !checkUserMargin {
+					c.logger.Info("user margin less than 10%", "orderUser", order.UserId)
 					return false
 				}
 
 				makerExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkMakerMargin := c.checkAccountMargin(makerExecutionDetails, true)
 				if !checkMakerMargin {
+					c.logger.Info("user margin less than 10%", "maker", makerOrder.UserId)
 					c.deleteMakerOrderFromOrderBook(makerOrder)
 					continue
 				}
@@ -225,7 +245,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 				// Insert Match Position for user and maker
 				userMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(userMatchPositionDetails)
-				c.updateUserWalletAmount(order.UserId, executionPositionSize*executionPrice)
+				c.updateUserWalletAmountWithDeduction(order.UserId, executionPositionSize*executionPrice)
 				makerMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(makerMatchPositionDetails)
 
@@ -233,7 +253,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 				c.DeleteOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market)
 
 				// Update Market Price
-				c.updateMarketPrice(market, executionPrice)
+				c.UpdateMarketPrice(market, executionPrice)
 				c.logger.Info("matchingEngineForShortOrder", "executionPositionSize", executionPositionSize, "executionPrice", executionPrice, "orderUser", order.UserId, "maker", makerOrder.UserId)
 
 			} else {
@@ -242,12 +262,14 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 				userExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkUserMargin := c.checkAccountMargin(userExecutionDetails, false)
 				if !checkUserMargin {
+					c.logger.Info("user margin less than 10%", "orderUser", order.UserId)
 					return false
 				}
 
 				makerExecutionDetails.ExecutionPositionSize = executionPositionSize
 				checkMakerMargin := c.checkAccountMargin(makerExecutionDetails, true)
 				if !checkMakerMargin {
+					c.logger.Info("user margin less than 10%", "maker", makerOrder.UserId)
 					c.deleteMakerOrderFromOrderBook(makerOrder)
 					continue
 				}
@@ -258,7 +280,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 				// Insert Match Position for user and maker
 				userMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(userMatchPositionDetails)
-				c.updateUserWalletAmount(order.UserId, executionPositionSize*executionPrice)
+				c.updateUserWalletAmountWithDeduction(order.UserId, executionPositionSize*executionPrice)
 				makerMatchPositionDetails.PositionSize = executionPositionSize
 				c.InsertMatchedPosition(makerMatchPositionDetails)
 
@@ -270,7 +292,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 				}
 
 				// Update Market Price
-				c.updateMarketPrice(market, executionPrice)
+				c.UpdateMarketPrice(market, executionPrice)
 				c.logger.Info("matchingEngineForShortOrder", "executionPositionSize", executionPositionSize, "executionPrice", executionPrice, "orderUser", order.UserId, "maker", makerOrder.UserId)
 			}
 
@@ -279,7 +301,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 	return true
 }
 
-func (c *TarantoolClient) updateUserWalletAmount(userId string, amountToDeduct float64) {
+func (c *TarantoolClient) updateUserWalletAmountWithDeduction(userId string, amountToDeduct float64) {
 	balance := c.GetUserWalletBalance(userId)
 	balance = balance - amountToDeduct
 	c.UpdateUserWalletBalance(userId, balance)
@@ -360,6 +382,9 @@ func (c *TarantoolClient) deleteMakerOrderFromOrderBook(makerOrder *OrderStruct)
 	userOrderBook := c.getAllOrders()
 	for _, order := range userOrderBook {
 		if order.UserId == makerOrder.UserId {
+			refundAmount := order.PositionSize * order.Price
+			walletBalance := c.GetUserWalletBalance(order.UserId)
+			c.UpdateUserWalletBalance(order.UserId, walletBalance+refundAmount)
 			c.DeleteOrderByPrimaryKey(order.UserId, order.Price, order.Side, order.Market)
 		}
 	}

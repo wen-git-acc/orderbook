@@ -1,6 +1,30 @@
-# [PROJECT-NAME]
+# [ORDERBOOK]
 
-Backend service Template
+Orderbook - RabbitX
+
+## Projet Overview
+
+This project is built using the Gin framework, which handles concurrent requests by default. It supports a maker-taker model for order execution. In this model:
+
+Taker Orders: When an aggressive taker order is placed, it will continue to fulfill the position until the best price condition fails. For short positions, the execution stops when the bid price falls below the short price. For long positions, it stops when the ask price exceeds the long price.
+Order Book Management: If an instant match is not found, the order is recorded in the order book. Once an order is placed in the order book, the wallet balance is deducted accordingly.
+Matching Charges: For taker orders, a fee is charged each time a match is found.
+
+Note:
+1. All the inserted market name and userid is assume to be small letter.
+
+## Project Navigation
+- navigation to entry point /server/api/controllers/orderbook_controller.go 
+- navigation to main.go /server/cmd/gin/main.go
+
+## Set Up Environment
+1. Copy and paste the launch.json schema below, and run go cli (triggers /server/cmd/cli/main.go) to pre-poluate user with wallet balance and orderbook for local test.
+2. Alternatively, you can run the script file by navigating to the mentioned directory with 
+```sh
+go run .
+```
+3. You can run the script file as many time you wish to increase position size in each order, deposit will remain unchanged unless the value is reconfigured.
+4. Please refer guide for tarantool below if you are looking to clean/reconfigure the database.
 
 ## Test Command
 
@@ -19,6 +43,7 @@ go test ./...
     │   ├── pkg                - Packages or Dependencies
     │   ├── tests              - Test files.  
     ├── scripts                - Folder dedicated for bash script or others.
+    ├── tarantool              - Tarantool environment config files.
     ├── Dockerfile             - Dockerfile for building the image
     └── README.md              - Current view.
 
@@ -57,6 +82,7 @@ This allowed you to run the project and debug the code in Visual Studio Code.
           "DEBUG": "true",
           "MODE": "development",
           "SECRET_POSTGRES_DB_PASSWORD": "postgres_password",
+          "TARANTOOL_PASSWORD": "123456"
         },
         "program": "${workspaceFolder}/server/cmd/cli"
       }
@@ -78,3 +104,67 @@ $ brew install postgresql
 
 $ brew services start postgresql
 ```
+
+## Tarantool DB
+### Connectors
+
+Tarantool DB as in-memory database for simple order book
+
+### Installation
+```sh
+brew install tarantool
+```
+
+```sh
+$ brew install tt
+```
+### Running
+Navigate to ./tarantool from root.
+
+Interactive mode:
+```sh
+tt start orderbook -i
+```
+
+Normal mode:
+```sh
+tt start orderbook
+```
+
+Clean data for fresh new instances
+```sh
+tt clean orderbook
+```
+
+### Connect to db for data Viewing
+1. 
+```sh
+tt start orderbook
+```
+
+2.
+```sh
+tt connect orderbook
+```
+
+3.
+```sh
+box.space.users:select{}
+```
+```sh
+box.space.market_price:select{}
+```
+```sh
+box.space.positions:select{}
+```
+```sh
+box.space.order_book:select{}
+```
+
+### Spaces
+Total 4 Spaces created:
+1. users, hold userid and wallet balance
+2. positions, hold current opening positions
+3. market_price, hold market price for the market (eth, btc etc.)
+4. order_book, hold all orders data.
+

@@ -139,7 +139,7 @@ func (client *HandlersClient) GetUserPositionHandler(context *gin.Context) {
 	userId := context.Param("userId")
 
 	tarantoolClient := client.packages.Services.Tarantool
-	positions, err := tarantoolClient.GetUserPositions(userId)
+	positions, err := tarantoolClient.GetUserPositions(strings.ToLower(userId))
 
 	if err != nil {
 		client.logger.Error("failed to get user position", err)

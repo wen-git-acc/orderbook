@@ -1,14 +1,7 @@
 # Connectors
 
-A sample application used to demonstrate how to connect to a database using connectors for different languages and execute requests for manipulating the data.
+Tarantool DB as in-memory database for simple order book
 
-## Running
-
-Start the application by executing the following command in the [connectors](../../../connectors) directory:
-
-```console
-$ tt start sample_db
-```
 
 ## Running
 Navigate to ./tarantool from root.
@@ -23,11 +16,41 @@ Normal mode:
 tt start orderbook
 ```
 
-## Spaces
-1. User (id=integer, wallet_balance=number, )
-2. positions (user_id=integer, market=string, position_size=number, avg_entry_price=number, side=integer, status=string)
-3. market_price (market=string, price=number)
-4. order_book (price=number, market=string, side=integer,userid,entry_price, position_size)
-5. match_history..
+Clean data for fresh new instances
+```sh
+tt clean orderbook
+```
 
-#side is 1 (long) and -1 (short)
+## Connect to db for data Viewing
+1. 
+```sh
+tt start orderbook
+```
+
+2.
+```sh
+tt connect orderbook
+```
+
+3.
+```sh
+box.space.users:select{}
+```
+```sh
+box.space.market_price:select{}
+```
+```sh
+box.space.positions:select{}
+```
+```sh
+box.space.order_book:select{}
+```
+
+
+## Spaces
+Total 4 Spaces creates:
+1. users, hold userid and wallet balance
+2. positions, hold current opening positions
+3. market_price, hold market price for the market (eth, btc etc.)
+4. order_book, hold all orders data.
+
