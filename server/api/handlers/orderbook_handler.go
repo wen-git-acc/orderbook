@@ -64,6 +64,14 @@ func (client *HandlersClient) CancelOrderHandler(context *gin.Context) {
 
 	tarantoolClient := client.packages.Services.Tarantool
 
+	order := tarantoolClient.GetOrderByPrimaryKey(deleteOrderRequest.UserId, deleteOrderRequest.Price, deleteOrderRequest.Side, deleteOrderRequest.Market)
+
+	if order == nil {
+		client.logger.Error("order not found, wrong order pass in")
+		context.JSON(400, gin.H{"error": "Order not found"})
+		return
+	}
+
 	err := tarantoolClient.DeleteOrderByPrimaryKey(deleteOrderRequest.UserId, deleteOrderRequest.Price, deleteOrderRequest.Side, deleteOrderRequest.Market)
 
 	if err != nil {
@@ -71,6 +79,10 @@ func (client *HandlersClient) CancelOrderHandler(context *gin.Context) {
 		context.JSON(500, gin.H{"error": "Internal system problem"})
 		return
 	}
+
+	walletBalance := tarantoolClient.GetUserWalletBalance(deleteOrderRequest.UserId)
+	refundedAmount := order.Price * order.PositionSize
+	tarantoolClient.UpdateUserWalletBalance(deleteOrderRequest.UserId, walletBalance+refundedAmount)
 
 	context.JSON(200, &dto.DeleteOrderResponse{
 		IsSuccess: true,

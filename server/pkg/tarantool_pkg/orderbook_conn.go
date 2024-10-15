@@ -42,6 +42,7 @@ type TarantoolOrderBookConnInterface interface {
 	OrderMatcher(order *OrderStruct) (err error)
 	GetOrderBook(market string) *SimplifiedOrderBook
 	DeleteOrderByPrimaryKey(userId string, price float64, side string, market string) error
+	GetOrderByPrimaryKey(userId string, price float64, side string, market string) *OrderStruct
 }
 
 func (c *TarantoolClient) GetPrimaryKeyForOrder(order *OrderStruct) string {
@@ -82,12 +83,12 @@ func (c *TarantoolClient) InsertNewOrder(order *OrderStruct) error {
 	return err
 }
 
-func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, side string, market string) error {
+func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, side string, market string) *OrderStruct {
 	primaryKey := fmt.Sprintf("%s:%.2f:%s:%s", userId, price, side, market)
 	conn := c.conn
 
 	// Update user wallet balance
-	_, err := conn.Do(
+	result, err := conn.Do(
 		tarantool.NewCallRequest(getOrderByPrimaryKey).Args([]interface{}{primaryKey}), // Ensure this matches the space format
 	).Get()
 
@@ -95,7 +96,12 @@ func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, sid
 		c.logger.Error("Got an error:", err)
 	}
 
-	return err
+	orderList := c.getTransformOrderList(result)
+	if len(orderList) > 0 {
+		return orderList[0]
+	}
+
+	return nil
 }
 
 // TODO need to test
@@ -154,6 +160,9 @@ func (c *TarantoolClient) getAllOrders() []*OrderStruct {
 func (c *TarantoolClient) getTransformOrderList(data []interface{}) []*OrderStruct {
 	orderList := []*OrderStruct{}
 	for _, item := range data {
+		if item == nil {
+			continue
+		}
 		data, ok := item.([]interface{})
 		if !ok {
 			c.logger.Info("Unexpected data format for order list")

@@ -23,5 +23,5 @@ func registerOrderBookController(router *gin.Engine, handler handlers.HandlersIn
 	router.GET(fmt.Sprintf("/%s/:market", basePath), handler.GetOrderBookHandler)               // get orderbook
 	router.GET(fmt.Sprintf("/%s/%s", basePath, "market-price/:market"), handler.GetMarketPrice) // get market price
 
-	router.GET(fmt.Sprintf("/%s/%s", basePath, "view/positions"), handler.GetAllPositionsHandler) // View all opening positions
+	router.GET(fmt.Sprintf("/%s/%s", basePath, "view/positions"), handler.GetAllPositionsHandler) // view all opening positions
 }

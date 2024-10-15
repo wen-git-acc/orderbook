@@ -12,6 +12,21 @@ Matching Charges: For taker orders, a fee is charged each time a match is found.
 
 Note:
 1. All the inserted market name and userid is assume to be small letter.
+2. Assume all the user have permission to access and start using trading endpoints.
+3. When order cancelled, user gets refunded. Likewise, refund also happen when margin less than 10% and all the order book orders is automtically cancelled.
+
+##
+This is a rest api, hence, below are the endpoint supported:-
+[GIN-debug] GET    /health_check             --> health check endpoint.
+[GIN-debug] POST   /orderbook/orders/insert  --> to insert maker taker order.
+[GIN-debug] POST   /orderbook/orders/cancel  --> to cancel order from orderbook.
+[GIN-debug] POST   /orderbook/user/deposit   --> to make deposit as a existing user or new user.
+[GIN-debug] GET    /orderbook/user/wallet/:userId --> to get current user wallet balance.
+[GIN-debug] GET    /orderbook/user/:userId/positions --> to view current opening positions (matched).
+[GIN-debug] GET    /orderbook/:market        --> to get the orderbook for the market (eth, btc, etc).
+[GIN-debug] GET    /orderbook/market-price/:market --> to get the current market price of the selected market (eth, btc, etc).
+[GIN-debug] GET    /orderbook/view/positions --> to view all opening positions regardless of user.
+
 
 ## Project Navigation
 - navigation to entry point /server/api/controllers/orderbook_controller.go 
@@ -25,6 +40,7 @@ go run .
 ```
 3. You can run the script file as many time you wish to increase position size in each order, deposit will remain unchanged unless the value is reconfigured.
 4. Please refer guide for tarantool below if you are looking to clean/reconfigure the database.
+5. Lastly please import the postman collection for easy set up if needed :).
 
 ## Test Command
 
