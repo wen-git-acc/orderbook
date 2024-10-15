@@ -7,6 +7,7 @@ import (
 
 type HandlersInterface interface {
 	HelloHandlerInterface
+	OrderBookHandlerInterface
 }
 
 type HandlersClient struct {

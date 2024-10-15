@@ -8,4 +8,5 @@ import (
 
 func RegisterControllers(router *gin.Engine, handler handlers.HandlersInterface) {
 	registerHealthCheckController(router, handler)
+	registerOrderBookController(router, handler)
 }
