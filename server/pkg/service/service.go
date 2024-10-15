@@ -2,11 +2,15 @@ package service
 
 import (
 	"context"
-	"template/go-api-server/config"
-	"template/go-api-server/pkg/logger"
-	"template/go-api-server/pkg/utils"
-	"template/go-api-server/storage"
-	"template/go-api-server/storage/database"
+
+	"github.com/tarantool/go-tarantool/v2"
+	"github.com/wen-git-acc/orderbook/config"
+	"github.com/wen-git-acc/orderbook/pkg/logger"
+	tarantoolPkg "github.com/wen-git-acc/orderbook/pkg/tarantool_pkg"
+
+	"github.com/wen-git-acc/orderbook/pkg/utils"
+	"github.com/wen-git-acc/orderbook/storage"
+	"github.com/wen-git-acc/orderbook/storage/database"
 )
 
 type ServiceClientConfig struct {
@@ -25,7 +29,8 @@ type ServiceClient struct {
 
 // All dependencies package register here
 type Services struct {
-	Utils utils.UtilsClientInterface
+	Utils     utils.UtilsClientInterface
+	Tarantool tarantoolPkg.TarantoolClientInterface
 }
 
 // All database daos register here
@@ -64,6 +69,18 @@ func (s *ServiceClient) RegisterUtilsPackage() *ServiceClient {
 
 	s.Services.Utils = utils.NewUtilsClient(&utils.UtilsClientOptions{
 		Logger: s.Logger.GetLoggerWithProfile("utils")})
+
+	return s
+}
+
+func (s *ServiceClient) RegisterTarantoolPackage(conn *tarantool.Connection) *ServiceClient {
+	s.Logger.Info("Registering tarantool package")
+
+	s.Services.Tarantool = tarantoolPkg.NewTarantoolClient(&tarantoolPkg.TarantoolClientOptions{
+		Logger: s.Logger.GetLoggerWithProfile("tarantool"),
+		Conn:   conn,
+		Utils:  s.Services.Utils,
+	})
 
 	return s
 }

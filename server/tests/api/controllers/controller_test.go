@@ -2,9 +2,10 @@ package controllers_test
 
 import (
 	"context"
-	"template/go-api-server/api/handlers"
-	"template/go-api-server/config"
-	"template/go-api-server/pkg/service"
+
+	"github.com/wen-git-acc/orderbook/api/handlers"
+	"github.com/wen-git-acc/orderbook/config"
+	"github.com/wen-git-acc/orderbook/pkg/service"
 )
 
 func getHandlers() handlers.HandlersInterface {

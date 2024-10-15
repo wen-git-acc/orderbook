@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"template/go-api-server/pkg/logger"
-	"template/go-api-server/pkg/service"
+	"github.com/wen-git-acc/orderbook/pkg/logger"
+	"github.com/wen-git-acc/orderbook/pkg/service"
 )
 
 type HandlersInterface interface {
 	HelloHandlerInterface
+	OrderBookHandlerInterface
 }
 
 type HandlersClient struct {
