@@ -7,8 +7,8 @@ import (
 )
 
 type TarantoolClientInterface interface {
-	GetHello() string
 	TarantoolUserConnInterface
+	TarantoolOrderBookConnInterface
 }
 
 type TarantoolClientOptions struct {
@@ -30,9 +30,4 @@ func NewTarantoolClient(opt *TarantoolClientOptions) TarantoolClientInterface {
 		conn:   opt.Conn,
 		utils:  opt.Utils,
 	}
-}
-
-// Example..
-func (c *TarantoolClient) GetHello() string {
-	return "Hello"
 }

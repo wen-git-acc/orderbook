@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/wen-git-acc/orderbook/api/dto"
+	"github.com/wen-git-acc/orderbook/pkg/tarantool_pkg"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,11 +21,45 @@ type OrderBookHandlerInterface interface {
 }
 
 func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
-	resp := dto.HelloHandlerResponse{
-		Message: client.packages.Services.Utils.GetHello(),
+	var insertOrderRequest dto.InsertOrderRequest
+
+	if err := context.ShouldBindJSON(&insertOrderRequest); err != nil {
+		context.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
-	context.JSON(200, resp)
+	userId := strings.ToLower(insertOrderRequest.UserId)
+	tarantoolClient := client.packages.Services.Tarantool
+	if !tarantoolClient.IsUserRegistered(userId) {
+		context.JSON(400, gin.H{"error": "User not registered"})
+		return
+	}
+
+	total_price := insertOrderRequest.Price * insertOrderRequest.PositionSize
+	a := tarantoolClient.GetUserWalletBalance(userId)
+	fmt.Println("total_price", total_price, "a", a)
+	fmt.Println("Smaller?", total_price < tarantoolClient.GetUserWalletBalance(userId))
+	if (insertOrderRequest.Price * insertOrderRequest.PositionSize) > tarantoolClient.GetUserWalletBalance(userId) {
+		context.JSON(400, gin.H{"error": "Insufficient balance"})
+		return
+	}
+
+	err := tarantoolClient.InsertNewOrder(&tarantool_pkg.OrderStruct{
+		UserId:       strings.ToLower(userId),
+		Price:        insertOrderRequest.Price,
+		Market:       strings.ToLower(insertOrderRequest.Market),
+		Side:         strings.ToLower(insertOrderRequest.Side),
+		PositionSize: insertOrderRequest.PositionSize,
+	})
+
+	if err != nil {
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+
+	context.JSON(200, &dto.InsertOrderResponse{
+		IsSuccess: true,
+	})
 }
 
 func (client *HandlersClient) DeleteOrderHandler(context *gin.Context) {
@@ -41,19 +79,19 @@ func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
 	}
 
 	tarantoolClient := client.packages.Services.Tarantool
-
-	isUserRegisterd := tarantoolClient.IsUserRegistered(depositRequest.UserID)
+	userId := strings.ToLower(depositRequest.UserID)
+	isUserRegisterd := tarantoolClient.IsUserRegistered(userId)
 
 	if isUserRegisterd {
-		currentBalance := tarantoolClient.GetUserWalletBalance(depositRequest.UserID)
+		currentBalance := tarantoolClient.GetUserWalletBalance(userId)
 		newBalance := currentBalance + depositRequest.DepositAmount
-		err := tarantoolClient.UpdateUserWalletBalance(depositRequest.UserID, newBalance)
+		err := tarantoolClient.UpdateUserWalletBalance(userId, newBalance)
 		if err != nil {
 			context.JSON(500, gin.H{"error": "Internal system problem"})
 			return
 		}
 	} else {
-		err := tarantoolClient.CreateUserWalletBalance(depositRequest.UserID, depositRequest.DepositAmount)
+		err := tarantoolClient.CreateUserWalletBalance(userId, depositRequest.DepositAmount)
 		if err != nil {
 			context.JSON(500, gin.H{"error": "Internal system problem"})
 			return
@@ -61,8 +99,8 @@ func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
 	}
 
 	context.JSON(200, dto.UserDepositResponse{
-		UserID:       depositRequest.UserID,
-		WalletAmount: tarantoolClient.GetUserWalletBalance(depositRequest.UserID),
+		UserID:       userId,
+		WalletAmount: tarantoolClient.GetUserWalletBalance(userId),
 	})
 }
 
@@ -70,21 +108,24 @@ func (client *HandlersClient) GetUserWalletHandler(context *gin.Context) {
 	//Will auto handle if userId is not in the path
 	userId := context.Param("userId")
 	tarantoolClient := client.packages.Services.Tarantool
-
-	walletAmount := tarantoolClient.GetUserWalletBalance(userId)
+	lowerUserId := strings.ToLower(userId)
+	walletAmount := tarantoolClient.GetUserWalletBalance(lowerUserId)
 
 	context.JSON(200, dto.UserDepositResponse{
-		UserID:       userId,
+		UserID:       lowerUserId,
 		WalletAmount: walletAmount,
 	})
 }
 
 func (client *HandlersClient) GetOrderBookHandler(context *gin.Context) {
-	resp := dto.HelloHandlerResponse{
-		Message: client.packages.Services.Utils.GetHello(),
-	}
 
-	context.JSON(200, resp)
+	tarantoolClient := client.packages.Services.Tarantool
+
+	orders := tarantoolClient.GetAllOrders()
+
+	context.JSON(200, &dto.GetAllOrderResponse{
+		Orders: orders,
+	})
 }
 func (client *HandlersClient) GetMatchHistoryHandler(context *gin.Context) {
 	resp := dto.HelloHandlerResponse{
