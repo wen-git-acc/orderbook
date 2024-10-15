@@ -38,10 +38,18 @@ type PgSqlConfig struct {
 	PostgresPoolRecycle int    `json:"postgresPoolRecycle"`
 }
 
+type TarantoolConfig struct {
+	Host     string `json:"tarantoolHost"`
+	Port     string `json:"tarantoolPort"`
+	User     string `json:"tarantoolUser"`
+	Password string `json:"tarantoolPassword"`
+}
+
 type AppConfig struct {
 	Mode        Mode   `default:"development"`
 	ServiceName string `default:"go-api-server"`
 	PgSql       *PgSqlMasterSlave
+	Tarantool   *TarantoolConfig
 }
 
 func Load() *AppConfig {
@@ -59,6 +67,7 @@ func Load() *AppConfig {
 
 	// Load pgsql config
 	loadPgConfig(app, app.Mode)
+	loadTarantoolConfig(app, app.Mode)
 
 	return app
 }
@@ -102,4 +111,18 @@ func loadPgConfig(appCfg *AppConfig, mode Mode) {
 	appCfg.PgSql = &PgSqlMasterSlave{
 		Master: pgSqlConfg,
 	}
+}
+
+func loadTarantoolConfig(appCfg *AppConfig, mode Mode) {
+	tarantoolConfig := &TarantoolConfig{}
+
+	if err := json.Unmarshal([]byte(loadFromEnvironment("TARANTOOL_CONFIG", "{}")), tarantoolConfig); err != nil {
+		slog.Error("Error unmarshaling tarantool config: %v", err)
+	}
+
+	if mode == Development {
+		tarantoolConfig.Password = loadFromEnvironment("TARANTOOL_PASSWORD", "")
+	}
+
+	appCfg.Tarantool = tarantoolConfig
 }

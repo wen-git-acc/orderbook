@@ -44,6 +44,7 @@ This allowed you to run the project and debug the code in Visual Studio Code.
           "DEBUG": "true",
           "MODE": "development",
           "SECRET_POSTGRES_DB_PASSWORD": "postgres_password",
+          "TARANTOOL_PASSWORD": "123456"
         },
         "program": "${workspaceFolder}/server/cmd/gin"
       },
@@ -60,7 +61,7 @@ This allowed you to run the project and debug the code in Visual Studio Code.
         "program": "${workspaceFolder}/server/cmd/cli"
       }
     ]
-  }
+}
 ```
 ## Environment Configuration
 

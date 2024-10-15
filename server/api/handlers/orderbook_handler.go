@@ -33,23 +33,52 @@ func (client *HandlersClient) DeleteOrderHandler(context *gin.Context) {
 }
 
 func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
-	resp := dto.HelloHandlerResponse{
-		Message: client.packages.Services.Utils.GetHello(),
+
+	var depositRequest dto.UserDepositRequest
+	if err := context.ShouldBindJSON(&depositRequest); err != nil {
+		context.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
-	context.JSON(200, resp)
+	tarantoolClient := client.packages.Services.Tarantool
+
+	isUserRegisterd := tarantoolClient.IsUserRegistered(depositRequest.UserID)
+
+	if isUserRegisterd {
+		currentBalance := tarantoolClient.GetUserWalletBalance(depositRequest.UserID)
+		newBalance := currentBalance + depositRequest.DepositAmount
+		err := tarantoolClient.UpdateUserWalletBalance(depositRequest.UserID, newBalance)
+		if err != nil {
+			context.JSON(500, gin.H{"error": "Internal system problem"})
+			return
+		}
+	} else {
+		err := tarantoolClient.CreateUserWalletBalance(depositRequest.UserID, depositRequest.DepositAmount)
+		if err != nil {
+			context.JSON(500, gin.H{"error": "Internal system problem"})
+			return
+		}
+	}
+
+	context.JSON(200, dto.UserDepositResponse{
+		UserID:       depositRequest.UserID,
+		WalletAmount: tarantoolClient.GetUserWalletBalance(depositRequest.UserID),
+	})
 }
 
 func (client *HandlersClient) GetUserWalletHandler(context *gin.Context) {
 	//Will auto handle if userId is not in the path
 	userId := context.Param("userId")
+	tarantoolClient := client.packages.Services.Tarantool
 
-	resp := dto.HelloHandlerResponse{
-		Message: client.packages.Services.Utils.GetHello() + " for user " + userId,
-	}
+	walletAmount := tarantoolClient.GetUserWalletBalance(userId)
 
-	context.JSON(200, resp)
+	context.JSON(200, dto.UserDepositResponse{
+		UserID:       userId,
+		WalletAmount: walletAmount,
+	})
 }
+
 func (client *HandlersClient) GetOrderBookHandler(context *gin.Context) {
 	resp := dto.HelloHandlerResponse{
 		Message: client.packages.Services.Utils.GetHello(),
