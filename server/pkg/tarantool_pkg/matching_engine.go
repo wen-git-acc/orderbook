@@ -30,6 +30,10 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 				return true
 			}
 
+			if order.UserId == makerOrder.UserId {
+				continue
+			}
+
 			executionPrice := makerOrder.Price
 
 			userExecutionDetails := &ExecutionDetailsStruct{
@@ -164,6 +168,10 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 			if order.PositionSize == 0 {
 				//End of order matching
 				return true
+			}
+
+			if order.UserId == makerOrder.UserId {
+				continue
 			}
 
 			executionPrice := makerOrder.Price
