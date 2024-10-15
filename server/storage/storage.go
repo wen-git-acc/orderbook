@@ -6,9 +6,10 @@ import (
 	"log"
 	"strconv"
 	"sync"
-	"template/go-api-server/config"
-	"template/go-api-server/pkg/logger"
 	"time"
+
+	"github.com/wen-git-acc/orderbook/config"
+	"github.com/wen-git-acc/orderbook/pkg/logger"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // PostgreSQL driver

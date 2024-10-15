@@ -2,8 +2,9 @@ package database
 
 import (
 	"context"
-	"template/go-api-server/pkg/logger"
-	"template/go-api-server/storage"
+
+	"github.com/wen-git-acc/orderbook/pkg/logger"
+	"github.com/wen-git-acc/orderbook/storage"
 )
 
 type IExampleDao interface {

@@ -5,9 +5,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"template/go-api-server/pkg/logger"
-	"template/go-api-server/pkg/service"
 	"time"
+
+	"github.com/wen-git-acc/orderbook/pkg/logger"
+	"github.com/wen-git-acc/orderbook/pkg/service"
 
 	"github.com/gin-gonic/gin"
 )

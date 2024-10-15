@@ -2,11 +2,12 @@ package service
 
 import (
 	"context"
-	"template/go-api-server/config"
-	"template/go-api-server/pkg/logger"
-	"template/go-api-server/pkg/utils"
-	"template/go-api-server/storage"
-	"template/go-api-server/storage/database"
+
+	"github.com/wen-git-acc/orderbook/config"
+	"github.com/wen-git-acc/orderbook/pkg/logger"
+	"github.com/wen-git-acc/orderbook/pkg/utils"
+	"github.com/wen-git-acc/orderbook/storage"
+	"github.com/wen-git-acc/orderbook/storage/database"
 )
 
 type ServiceClientConfig struct {

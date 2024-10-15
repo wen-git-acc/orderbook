@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"template/go-api-server/api/dto"
+	"github.com/wen-git-acc/orderbook/api/dto"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,7 +1,7 @@
 package tarantool
 
 import (
-	"template/go-api-server/pkg/logger"
+	"github.com/wen-git-acc/orderbook/pkg/logger"
 )
 
 type TarantoolClientInterface interface {

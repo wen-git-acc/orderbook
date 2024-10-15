@@ -2,7 +2,8 @@ package controllers
 
 import (
 	"fmt"
-	"template/go-api-server/api/handlers"
+
+	"github.com/wen-git-acc/orderbook/api/handlers"
 
 	"github.com/gin-gonic/gin"
 )

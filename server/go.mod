@@ -1,4 +1,4 @@
-module template/go-api-server
+module github.com/wen-git-acc/orderbook
 
 go 1.22.4
 

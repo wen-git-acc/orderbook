@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# OLD_MODULE="template/go-api-server"
-# NEW_MODULE="template/go-api-server/v2"
+# OLD_MODULE="github.com/wen-git-acc/orderbook"
+# NEW_MODULE="github.com/wen-git-acc/orderbook/v2"
 
 # # Navigate to the server directory
 # cd ../server || exit 1
