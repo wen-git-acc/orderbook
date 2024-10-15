@@ -15,17 +15,28 @@ Note:
 2. Assume all the user have permission to access and start using trading endpoints.
 3. When order cancelled, user gets refunded. Likewise, refund also happen when margin less than 10% and all the order book orders is automtically cancelled.
 
-##
-This is a rest api, hence, below are the endpoint supported:-
-[GIN-debug] GET    /health_check             --> health check endpoint.
-[GIN-debug] POST   /orderbook/orders/insert  --> to insert maker taker order.
-[GIN-debug] POST   /orderbook/orders/cancel  --> to cancel order from orderbook.
-[GIN-debug] POST   /orderbook/user/deposit   --> to make deposit as a existing user or new user.
-[GIN-debug] GET    /orderbook/user/wallet/:userId --> to get current user wallet balance.
-[GIN-debug] GET    /orderbook/user/:userId/positions --> to view current opening positions (matched).
-[GIN-debug] GET    /orderbook/:market        --> to get the orderbook for the market (eth, btc, etc).
-[GIN-debug] GET    /orderbook/market-price/:market --> to get the current market price of the selected market (eth, btc, etc).
-[GIN-debug] GET    /orderbook/view/positions --> to view all opening positions regardless of user.
+## API Endpoints
+
+This project provides the following REST API endpoints:
+
+- **Health Check**
+  - `GET /health_check`: Check the health status of the service.
+
+- **Order Management**
+  - `POST /orderbook/orders/insert`: Insert a maker or taker order.
+  - `POST /orderbook/orders/cancel`: Cancel an order from the order book.
+
+- **User Management**
+  - `POST /orderbook/user/deposit`: Make a deposit as an existing or new user.
+  - `GET /orderbook/user/wallet/:userId`: Get the current wallet balance of a user.
+  - `GET /orderbook/user/:userId/positions`: View the current open positions (matched) of a user.
+
+- **Market Data**
+  - `GET /orderbook/:market`: Get the order book for a specific market (e.g., ETH, BTC).
+  - `GET /orderbook/market-price/:market`: Get the current market price of a specific market (e.g., ETH, BTC).
+
+- **Position Viewing**
+  - `GET /orderbook/view/positions`: View all open positions regardless of the user.
 
 
 ## Project Navigation
