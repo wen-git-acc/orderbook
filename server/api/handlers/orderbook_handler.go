@@ -18,6 +18,9 @@ type OrderBookHandlerInterface interface {
 	GetOrderBookHandler(context *gin.Context)
 	GetMatchHistoryHandler(context *gin.Context)
 	GetUserPositionHandler(context *gin.Context)
+	InsertPositionHandler(context *gin.Context)
+	ViewPositionsHandler(context *gin.Context)
+	GetMarketPrice(context *gin.Context)
 }
 
 func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
@@ -127,6 +130,8 @@ func (client *HandlersClient) GetOrderBookHandler(context *gin.Context) {
 		Orders: orders,
 	})
 }
+
+// TODO:
 func (client *HandlersClient) GetMatchHistoryHandler(context *gin.Context) {
 	resp := dto.HelloHandlerResponse{
 		Message: client.packages.Services.Utils.GetHello(),
@@ -134,10 +139,59 @@ func (client *HandlersClient) GetMatchHistoryHandler(context *gin.Context) {
 
 	context.JSON(200, resp)
 }
+
+// TODO:
 func (client *HandlersClient) GetUserPositionHandler(context *gin.Context) {
 	resp := dto.HelloHandlerResponse{
 		Message: client.packages.Services.Utils.GetHello(),
 	}
 
 	context.JSON(200, resp)
+}
+
+func (client *HandlersClient) InsertPositionHandler(context *gin.Context) {
+	var insertPosition tarantool_pkg.PositionStruct
+	if err := context.ShouldBindJSON(&insertPosition); err != nil {
+		context.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	tarantoolClient := client.packages.Services.Tarantool
+	err := tarantoolClient.InsertMatchedPosition(&insertPosition)
+
+	if err != nil {
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+
+	context.JSON(200, &dto.InsertOrderResponse{
+		IsSuccess: true,
+	})
+}
+
+func (client *HandlersClient) ViewPositionsHandler(context *gin.Context) {
+	tarantoolClient := client.packages.Services.Tarantool
+	positions, err := tarantoolClient.GetAllPositions()
+
+	if err != nil {
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+	try := positions[0]
+	tarantoolClient.DeletePosition(try.UserID, try.Market, try.Side)
+
+	context.JSON(200, &dto.GetAllPositionsResposne{
+		Positions: positions,
+	})
+}
+
+func (client *HandlersClient) GetMarketPrice(context *gin.Context) {
+	market := context.Param("market")
+	market = strings.ToLower(market)
+	tarantoolClient := client.packages.Services.Tarantool
+	marketPrice := tarantoolClient.GetMarketPriceByMarket(market)
+
+	context.JSON(200, &dto.GetMarketPriceResponse{
+		MarketPrice: marketPrice,
+	})
 }

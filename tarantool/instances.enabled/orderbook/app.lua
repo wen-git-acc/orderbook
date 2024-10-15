@@ -33,23 +33,22 @@ box.space.users:create_index('primary', {
 })
 
 
--- -- Create Positions spaces --
--- box.schema.create_space('positions', {
---     if_not_exists = true,
---     format ={
---         {name = 'user_id', type = 'integer'},          -- User ID
---         {name = 'market', type = 'string'},            -- Market (e.g., 'BTC', 'ETH')
---         {name = 'position_size', type = 'number'},     -- Position size
---         {name = 'status', type = 'string'},            -- (open/closed)
---         {name = 'avg_entry_price', type = 'number'},   -- Average entry price
---         {name = 'side', type = 'integer'}              -- Side (1 for long, -1 for short)
---     }
--- })
--- box.space.positions:create_index('user_market_index', {
---     type = 'hash',
---     parts = {1, 'integer', 2, 'string'},  -- user_id, market
---     if_not_exists = true
--- })
+-- Create Positions spaces --
+box.schema.create_space('positions', {
+    if_not_exists = true,
+    format ={
+        {name = 'user_id', type = 'string'},          -- User ID
+        {name = 'market', type = 'string'},            -- Market (e.g., 'BTC', 'ETH')
+        {name = 'position_size', type = 'number'},     -- Position size
+        {name = 'avg_entry_price', type = 'number'},   -- Average entry price
+        {name = 'side', type = 'string'}              -- Side (1 for long, -1 for short)
+    }
+})
+box.space.positions:create_index('user_market_side_index', {
+    type = 'hash',
+    parts = {1, 'string', 2, 'string', 5, 'string'},  -- user_id, market
+    if_not_exists = true
+})
 
 
 -- Create order book spaces --

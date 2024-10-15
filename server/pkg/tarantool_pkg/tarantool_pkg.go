@@ -9,6 +9,9 @@ import (
 type TarantoolClientInterface interface {
 	TarantoolUserConnInterface
 	TarantoolOrderBookConnInterface
+	TarantoolPositionConnInterface
+	TarantoolPositionConnInterface
+	TarantoolMarketPriceConnInterface
 }
 
 type TarantoolClientOptions struct {

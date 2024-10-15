@@ -17,6 +17,13 @@ type OrderStruct struct {
 	createdTime  int64
 }
 
+const (
+	orderBookSpace       = "order_book"
+	insertOrderData      = "insert_order_data"
+	getOrderByPrimaryKey = "get_order_by_primary_key"
+	marketSideIndex      = "market_side_index"
+)
+
 type TarantoolOrderBookConnInterface interface {
 	GetAllOrders() []*OrderStruct
 	InsertNewOrder(order *OrderStruct) error
@@ -38,7 +45,7 @@ func (c *TarantoolClient) InsertNewOrder(order *OrderStruct) error {
 	// Update user wallet balance
 
 	_, err := conn.Do(
-		tarantool.NewCallRequest("insert_order_data").Args([]interface{}{primaryKey, order.Price, order.Market, order.Side, order.UserId, order.PositionSize, timestamp}), // Ensure this matches the space format
+		tarantool.NewCallRequest(insertOrderData).Args([]interface{}{primaryKey, order.Price, order.Market, order.Side, order.UserId, order.PositionSize, timestamp}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {
@@ -53,7 +60,7 @@ func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, sid
 
 	// Update user wallet balance
 	result, err := conn.Do(
-		tarantool.NewCallRequest("get_order_by_primary_key").Args([]interface{}{primaryKey}), // Ensure this matches the space format
+		tarantool.NewCallRequest(getOrderByPrimaryKey).Args([]interface{}{primaryKey}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {
@@ -68,7 +75,7 @@ func (c *TarantoolClient) GetAllOrders() []*OrderStruct {
 	conn := c.conn
 
 	result, err := conn.Do(
-		tarantool.NewSelectRequest("order_book").
+		tarantool.NewSelectRequest(orderBookSpace).
 			Iterator(tarantool.IterAll).
 			Key([]interface{}{}), // Ensure this matches the space format
 	).Get()
@@ -123,8 +130,8 @@ func (c *TarantoolClient) GetOrdersByMarketAndSide(market string, side int) erro
 
 	sideStr := fmt.Sprintf("%d", side)
 	result, err := conn.Do(
-		tarantool.NewSelectRequest("order_book").
-			Index("market_side_index").
+		tarantool.NewSelectRequest(orderBookSpace).
+			Index(marketSideIndex).
 			Key([]interface{}{market, sideStr}).
 			Iterator(tarantool.IterEq),
 	).Get()

@@ -28,3 +28,11 @@ type InsertOrderResponse struct {
 type GetAllOrderResponse struct {
 	Orders []*tarantool_pkg.OrderStruct `json:"orders"`
 }
+
+type GetAllPositionsResposne struct {
+	Positions []*tarantool_pkg.PositionStruct `json:"positions"`
+}
+
+type GetMarketPriceResponse struct {
+	MarketPrice float64 `json:"market_price"`
+}

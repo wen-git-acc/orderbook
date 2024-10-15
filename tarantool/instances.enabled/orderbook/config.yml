@@ -4,7 +4,7 @@ credentials:
       password: '123456'
       privileges:
       - permissions: [ read, write ]
-        spaces: [ market_price, users, order_book ]
+        spaces: [ market_price, users, order_book, positions ]
       - permissions: [ execute ]
         functions: [ get_market_price, get_user_wallet_balance, update_user_wallet_balance, create_user_wallet_balance, get_orders_by_market_side_and_price, insert_order_data, "get_order_by_price_and_user_id", get_order_by_primary_key]
 
