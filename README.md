@@ -32,8 +32,8 @@ This project provides the following REST API endpoints:
   - `GET /orderbook/user/:userId/positions`: View the current open positions (matched) of a user.
 
 - **Market Data**
-  - `GET /orderbook/:market`: Get the order book for a specific market (e.g., ETH, BTC).
-  - `GET /orderbook/market-price/:market`: Get the current market price of a specific market (e.g., ETH, BTC).
+  - `GET /orderbook/:market`: Get the order book for a specific market (e.g., eth, btc).
+  - `GET /orderbook/market-price/:market`: Get the current market price of a specific market (e.g., eth, btc).
 
 - **Position Viewing**
   - `GET /orderbook/view/positions`: View all open positions regardless of the user.
