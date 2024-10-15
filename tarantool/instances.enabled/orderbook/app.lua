@@ -56,7 +56,7 @@ box.schema.create_space('order_book', {
     if_not_exists = true,
     format =
     {
-        {name = 'id', type = 'string'}, -- uniqueKey (userid:price:side) entry price
+        {name = 'id', type = 'string'}, -- uniqueKey (userid:price:side:market) entry price
         {name = 'price', type = 'number'}, -- entry price
         {name = 'market', type = 'string'}, -- BTC or ETH
         {name = 'side', type = 'string'},  -- 1 for buy, -1 for sell
@@ -95,34 +95,9 @@ box.space.order_book:create_index('market_side_price_timestamp_index', {
     if_not_exists = true,
     unique=false
 })
--- box.space.order_book:create_index("user_price_index", {
---     type = 'hash',
---     parts = {5, 'string', 2, 'number'},  -- user_id, price
---     if_not_exists = true
--- })
-
--- box.space.order_book:create_index('market_side_index', {
---     type = 'hash',
---     parts = {2, 'string', 3, 'integer'},  -- price, market, side
---     if_not_exists = true
--- })
--- box.space.order_book:create_index('market_index', {
---     type = 'hash',
---     parts = {2, 'string'},  -- price, market, side
---     if_not_exists = true
--- })
--- box.space.order_book:create_index('side_index', {
---     type = 'hash',
---     parts = {3, 'integer'},  -- price, market, side
---     if_not_exists = true
--- })
 
 
-
-
-
--- Create function --
-
+-- Create Procedure --
 -- (Market Price) --
 -- Function to get market price --
 function get_market_price(key)
@@ -140,7 +115,7 @@ box.schema.func.create('get_market_price', {if_not_exists = true})
 
 
 -- (Users) --
--- Function to get user wallet balance --
+-- Procedure to get user wallet balance --
 function get_user_wallet_balance(key)
     local result = box.space.users:select({key})
     if #result > 0 then
@@ -149,49 +124,27 @@ function get_user_wallet_balance(key)
         return nil
     end
 end
-
 box.schema.func.create('get_user_wallet_balance', {if_not_exists = true})
 
--- Function to update user wallet balance --
+-- Procedure to update user wallet balance --
 function update_user_wallet_balance(user_id, new_balance)
     box.space.users:update(user_id, {{'=', 2, new_balance}})
 end
-
 box.schema.func.create('update_user_wallet_balance', {if_not_exists = true})
 
--- Function to create new user --
+-- Procedure to create new user --
 function create_user_wallet_balance(user_id, wallet_balance)
     print(wallet_balance)
     box.space.users:insert({user_id, wallet_balance})
 end
-
 box.schema.func.create('create_user_wallet_balance', {if_not_exists = true})
 
--- -- Function to delete user --
--- function delete_user(user_id)
---     box.space.users:delete(user_id)
--- end
-
--- box.schema.func.create('delete_user', {if_not_exists = true})
-
--- -- Function to get all users --
--- function get_all_users()
---     return box.space.users:select()
--- end
-
--- box.schema.func.create('get_all_users', {if_not_exists = true})
 
 
-
-
-
--- Creating function for orderbooks --
-
-
+-- (Orderbook) --
 --- Insert Order Data to order book --
 function insert_order_data(primary_key,price, market, side, user_id, position_size, created_at)
     local existing_order = get_order_by_primary_key(primary_key)
-    -- local created_at = os.time()
     local position_size = tonumber(position_size)
 
     if existing_order then
@@ -207,19 +160,6 @@ function insert_order_data(primary_key,price, market, side, user_id, position_si
 end
 box.schema.func.create('insert_order_data', {if_not_exists = true})
 
-
--- Get Order by Price and User ID --
--- function get_order_by_price_and_user_id(user_id, price)
---     local result = box.space.order_book.index.user_price_index:select({user_id, price})
---     if #result > 0 then
---         return result[1]
---     else
---         return nil
---     end
--- end
--- box.schema.func.create('get_order_by_price_and_user_id', {if_not_exists = true})
-
-
 -- Get order by primary key --
 function get_order_by_primary_key(primaryKey)
     local result = box.space.order_book.index.primary:select({primaryKey})
@@ -231,12 +171,3 @@ function get_order_by_primary_key(primaryKey)
 end
 box.schema.func.create('get_order_by_primary_key', {if_not_exists = true})
 
-
-
- -- box.space.order_book.index.market_side_price_timestamp_index:select({"BTC","1",100},{iterator="GE"}) --
- -- For ask (short) orders, the price should be greater than or equal to the specified price (from orderbook)
- -- the result array will return in order of lowest buy to highest buy with incremental timestamp, we can build ordermap sequentially, and tranverse from behind to match"
-
- --  box.space.order_book.index.market_side_price_timestamp_index:select({"BTC","-1",300},{iterator="LE"}) --
- -- This is for (bid) long orders, the price should be less than or equal to the specified price (from orderbook)
- -- the result array is arraneging from highest sell to lowest sell with decremental timestamp, we can build ordermap from bottom and sort it from high price to low price"

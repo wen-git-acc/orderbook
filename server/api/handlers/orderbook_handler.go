@@ -16,7 +16,6 @@ type OrderBookHandlerInterface interface {
 	GetUserWalletHandler(context *gin.Context)
 	GetOrderBookHandler(context *gin.Context)
 	GetUserPositionHandler(context *gin.Context)
-	InsertPositionHandler(context *gin.Context)
 	GetAllPositionsHandler(context *gin.Context)
 	GetMarketPrice(context *gin.Context)
 }
@@ -150,27 +149,6 @@ func (client *HandlersClient) GetUserPositionHandler(context *gin.Context) {
 
 	context.JSON(200, &dto.GetUserPositionResponse{
 		Positions: positions,
-	})
-}
-
-// TOBE DELETED
-func (client *HandlersClient) InsertPositionHandler(context *gin.Context) {
-	var insertPosition tarantool_pkg.PositionStruct
-	if err := context.ShouldBindJSON(&insertPosition); err != nil {
-		context.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	tarantoolClient := client.packages.Services.Tarantool
-	err := tarantoolClient.InsertMatchedPosition(&insertPosition)
-
-	if err != nil {
-		context.JSON(500, gin.H{"error": "Internal system problem"})
-		return
-	}
-
-	context.JSON(200, &dto.InsertOrderResponse{
-		IsSuccess: true,
 	})
 }
 
