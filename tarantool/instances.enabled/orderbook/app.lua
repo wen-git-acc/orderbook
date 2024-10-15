@@ -85,7 +85,6 @@ box.space.order_book:create_index('userid_index',{
     if_not_exists = true,
     unique=false
 })
-
 box.space.order_book:create_index('market_side_price_timestamp_index', {
     type = 'TREE',
     parts = {

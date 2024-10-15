@@ -1,8 +1,6 @@
 package tarantool_pkg
 
 import (
-	"fmt"
-
 	"github.com/tarantool/go-tarantool/v2"
 )
 
@@ -28,7 +26,7 @@ func (c *TarantoolClient) IsUserRegistered(userID string) bool {
 
 	data := result[0]
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
 	if data != nil {
 		return true
@@ -45,7 +43,7 @@ func (c *TarantoolClient) GetUserWalletBalance(user_id string) float64 {
 	).Get()
 
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
 
 	data := result[0]
@@ -64,7 +62,7 @@ func (c *TarantoolClient) UpdateUserWalletBalance(user_id string, balance float6
 	).Get()
 
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
 
 	return err
@@ -78,7 +76,7 @@ func (c *TarantoolClient) CreateUserWalletBalance(user_id string, balance float6
 	).Get()
 
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
 
 	return err

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/wen-git-acc/orderbook/api/dto"
@@ -12,14 +11,13 @@ import (
 
 type OrderBookHandlerInterface interface {
 	InsertOrderHandler(context *gin.Context)
-	DeleteOrderHandler(context *gin.Context)
+	CancelOrderHandler(context *gin.Context)
 	UserDepositHandler(context *gin.Context)
 	GetUserWalletHandler(context *gin.Context)
 	GetOrderBookHandler(context *gin.Context)
-	GetMatchHistoryHandler(context *gin.Context)
 	GetUserPositionHandler(context *gin.Context)
 	InsertPositionHandler(context *gin.Context)
-	ViewPositionsHandler(context *gin.Context)
+	GetAllPositionsHandler(context *gin.Context)
 	GetMarketPrice(context *gin.Context)
 }
 
@@ -38,16 +36,13 @@ func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
 		return
 	}
 
-	total_price := insertOrderRequest.Price * insertOrderRequest.PositionSize
-	a := tarantoolClient.GetUserWalletBalance(userId)
-	fmt.Println("total_price", total_price, "a", a)
-	fmt.Println("Smaller?", total_price < tarantoolClient.GetUserWalletBalance(userId))
-	if (insertOrderRequest.Price * insertOrderRequest.PositionSize) > tarantoolClient.GetUserWalletBalance(userId) {
+	userWalletBalance := tarantoolClient.GetUserWalletBalance(userId)
+
+	if (insertOrderRequest.Price * insertOrderRequest.PositionSize) > userWalletBalance {
 		context.JSON(400, gin.H{"error": "Insufficient balance"})
 		return
 	}
-
-	err := tarantoolClient.InsertNewOrder(&tarantool_pkg.OrderStruct{
+	tarantoolClient.OrderMatcher(&tarantool_pkg.OrderStruct{
 		UserId:       strings.ToLower(userId),
 		Price:        insertOrderRequest.Price,
 		Market:       strings.ToLower(insertOrderRequest.Market),
@@ -55,22 +50,32 @@ func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
 		PositionSize: insertOrderRequest.PositionSize,
 	})
 
-	if err != nil {
-		context.JSON(500, gin.H{"error": "Internal system problem"})
-		return
-	}
-
 	context.JSON(200, &dto.InsertOrderResponse{
 		IsSuccess: true,
 	})
 }
 
-func (client *HandlersClient) DeleteOrderHandler(context *gin.Context) {
-	resp := dto.HelloHandlerResponse{
-		Message: client.packages.Services.Utils.GetHello(),
+func (client *HandlersClient) CancelOrderHandler(context *gin.Context) {
+	var deleteOrderRequest dto.DeleteOrderRequest
+
+	if err := context.ShouldBindJSON(&deleteOrderRequest); err != nil {
+		context.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
-	context.JSON(200, resp)
+	tarantoolClient := client.packages.Services.Tarantool
+
+	err := tarantoolClient.DeleteOrderByPrimaryKey(deleteOrderRequest.UserId, deleteOrderRequest.Price, deleteOrderRequest.Side, deleteOrderRequest.Market)
+
+	if err != nil {
+		client.logger.Error("failed to delete order", err)
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+
+	context.JSON(200, &dto.DeleteOrderResponse{
+		IsSuccess: true,
+	})
 }
 
 func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
@@ -90,12 +95,14 @@ func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
 		newBalance := currentBalance + depositRequest.DepositAmount
 		err := tarantoolClient.UpdateUserWalletBalance(userId, newBalance)
 		if err != nil {
+			client.logger.Error("failed to update user wallet balance", err)
 			context.JSON(500, gin.H{"error": "Internal system problem"})
 			return
 		}
 	} else {
 		err := tarantoolClient.CreateUserWalletBalance(userId, depositRequest.DepositAmount)
 		if err != nil {
+			client.logger.Error("failed to create user wallet balance", err)
 			context.JSON(500, gin.H{"error": "Internal system problem"})
 			return
 		}
@@ -108,7 +115,6 @@ func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
 }
 
 func (client *HandlersClient) GetUserWalletHandler(context *gin.Context) {
-	//Will auto handle if userId is not in the path
 	userId := context.Param("userId")
 	tarantoolClient := client.packages.Services.Tarantool
 	lowerUserId := strings.ToLower(userId)
@@ -121,34 +127,33 @@ func (client *HandlersClient) GetUserWalletHandler(context *gin.Context) {
 }
 
 func (client *HandlersClient) GetOrderBookHandler(context *gin.Context) {
+	market := context.Param("market")
 
 	tarantoolClient := client.packages.Services.Tarantool
 
-	orders := tarantoolClient.GetAllOrders()
+	orders := tarantoolClient.GetOrderBook(strings.ToLower(market))
 
-	context.JSON(200, &dto.GetAllOrderResponse{
-		Orders: orders,
+	context.JSON(200, orders)
+}
+
+func (client *HandlersClient) GetUserPositionHandler(context *gin.Context) {
+	userId := context.Param("userId")
+
+	tarantoolClient := client.packages.Services.Tarantool
+	positions, err := tarantoolClient.GetUserPositions(userId)
+
+	if err != nil {
+		client.logger.Error("failed to get user position", err)
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+
+	context.JSON(200, &dto.GetUserPositionResponse{
+		Positions: positions,
 	})
 }
 
-// TODO:
-func (client *HandlersClient) GetMatchHistoryHandler(context *gin.Context) {
-	resp := dto.HelloHandlerResponse{
-		Message: client.packages.Services.Utils.GetHello(),
-	}
-
-	context.JSON(200, resp)
-}
-
-// TODO:
-func (client *HandlersClient) GetUserPositionHandler(context *gin.Context) {
-	resp := dto.HelloHandlerResponse{
-		Message: client.packages.Services.Utils.GetHello(),
-	}
-
-	context.JSON(200, resp)
-}
-
+// TOBE DELETED
 func (client *HandlersClient) InsertPositionHandler(context *gin.Context) {
 	var insertPosition tarantool_pkg.PositionStruct
 	if err := context.ShouldBindJSON(&insertPosition); err != nil {
@@ -169,7 +174,7 @@ func (client *HandlersClient) InsertPositionHandler(context *gin.Context) {
 	})
 }
 
-func (client *HandlersClient) ViewPositionsHandler(context *gin.Context) {
+func (client *HandlersClient) GetAllPositionsHandler(context *gin.Context) {
 	tarantoolClient := client.packages.Services.Tarantool
 	positions, err := tarantoolClient.GetAllPositions()
 
@@ -177,8 +182,6 @@ func (client *HandlersClient) ViewPositionsHandler(context *gin.Context) {
 		context.JSON(500, gin.H{"error": "Internal system problem"})
 		return
 	}
-	try := positions[0]
-	tarantoolClient.DeletePosition(try.UserID, try.Market, try.Side)
 
 	context.JSON(200, &dto.GetAllPositionsResposne{
 		Positions: positions,

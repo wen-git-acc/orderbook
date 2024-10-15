@@ -17,6 +17,19 @@ type OrderStruct struct {
 	createdTime  int64
 }
 
+type ExecutionDetailsStruct struct {
+	UserId                string
+	Market                string
+	Side                  string
+	ExecutionPositionSize float64
+	ExecutionPrice        float64
+}
+
+type SimplifiedOrderBook struct {
+	AskOrderBook [][]float64 `json:"ask"`
+	BidOrderBook [][]float64 `json:"bid"`
+}
+
 const (
 	orderBookSpace       = "order_book"
 	insertOrderData      = "insert_order_data"
@@ -25,8 +38,10 @@ const (
 )
 
 type TarantoolOrderBookConnInterface interface {
-	GetAllOrders() []*OrderStruct
 	InsertNewOrder(order *OrderStruct) error
+	OrderMatcher(order *OrderStruct) (err error)
+	GetOrderBook(market string) *SimplifiedOrderBook
+	DeleteOrderByPrimaryKey(userId string, price float64, side string, market string) error
 }
 
 func (c *TarantoolClient) GetPrimaryKeyForOrder(order *OrderStruct) string {
@@ -35,76 +50,113 @@ func (c *TarantoolClient) GetPrimaryKeyForOrder(order *OrderStruct) string {
 	return primaryKey
 }
 
+func (c *TarantoolClient) OrderMatcher(order *OrderStruct) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			c.logger.Error("OrderMatcher panicked: %v", r)
+			err = fmt.Errorf("OrderMatcher panicked: %v", r)
+		}
+	}()
+
+	if order.Side == "1" {
+		c.matchingEngineForLongOrder(order, c.getAskOrderBook(order))
+	} else {
+		c.matchingEngineForShortOrder(order, c.getBidOrderBook(order))
+	}
+
+	return nil
+}
+
 func (c *TarantoolClient) InsertNewOrder(order *OrderStruct) error {
 	conn := c.conn
 	timestamp := time.Now().Unix()
 	primaryKey := c.GetPrimaryKeyForOrder(order)
-
-	// primaryKey := fmt.Sprintf("%s:%.2f:%d:%s", userId, price, side, market)
-	// sideStr := fmt.Sprintf("%d", side)
-	// Update user wallet balance
 
 	_, err := conn.Do(
 		tarantool.NewCallRequest(insertOrderData).Args([]interface{}{primaryKey, order.Price, order.Market, order.Side, order.UserId, order.PositionSize, timestamp}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
 	return err
 }
 
-func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, side int, market string) error {
-	primaryKey := fmt.Sprintf("%s:%.2f:%d:%s", userId, price, side, market)
+func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, side string, market string) error {
+	primaryKey := fmt.Sprintf("%s:%.2f:%s:%s", userId, price, side, market)
 	conn := c.conn
 
 	// Update user wallet balance
-	result, err := conn.Do(
+	_, err := conn.Do(
 		tarantool.NewCallRequest(getOrderByPrimaryKey).Args([]interface{}{primaryKey}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
-	fmt.Println("result", result)
 
 	return err
 }
 
-func (c *TarantoolClient) GetAllOrders() []*OrderStruct {
+// TODO need to test
+func (c *TarantoolClient) updateOrderByPrimaryKey(userId string, price float64, side string, market string, positionSize float64) error {
+	primaryKey := fmt.Sprintf("%s:%.2f:%s:%s", userId, price, side, market)
+	conn := c.conn
+
+	// Update user wallet balance
+	_, err := conn.Do(
+		tarantool.NewUpdateRequest(orderBookSpace).
+			Key([]interface{}{primaryKey}). // Ensure this matches the space format
+			Operations(tarantool.NewOperations().Assign(5, positionSize)),
+	).Get()
+
+	if err != nil {
+		c.logger.Error("Got an error:", err)
+	}
+
+	return err
+}
+
+func (c *TarantoolClient) DeleteOrderByPrimaryKey(userId string, price float64, side string, market string) error {
+	primaryKey := fmt.Sprintf("%s:%.2f:%s:%s", userId, price, side, market)
+	conn := c.conn
+
+	// Update user wallet balance
+	_, err := conn.Do(
+		tarantool.NewDeleteRequest(orderBookSpace).
+			Key([]interface{}{primaryKey}), // Ensure this matches the space format
+	).Get()
+
+	if err != nil {
+		c.logger.Error("Got an error:", err)
+	}
+
+	return err
+}
+
+func (c *TarantoolClient) getAllOrders() []*OrderStruct {
 	conn := c.conn
 
 	result, err := conn.Do(
 		tarantool.NewSelectRequest(orderBookSpace).
 			Iterator(tarantool.IterAll).
-			Key([]interface{}{}), // Ensure this matches the space format
+			Key([]interface{}{}),
 	).Get()
 
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
-
-	// orderList := []*OrderStruct{}
-	// for _, item := range result {
-	// 	data, ok := item.([]interface{})
-	// 	if !ok {
-	// 		fmt.Println("Unexpected data format")
-	// 		continue
-	// 	}
-	// 	fmt.Println("data", data)
-	// 	orderList = append(orderList, c.transformToOrderStruct(data))
-	// }
 	orderList := c.getTransformOrderList(result)
-	fmt.Println("result", result)
 
 	return orderList
 }
+
 func (c *TarantoolClient) getTransformOrderList(data []interface{}) []*OrderStruct {
 	orderList := []*OrderStruct{}
 	for _, item := range data {
 		data, ok := item.([]interface{})
 		if !ok {
-			fmt.Println("Unexpected data format for order list")
+			c.logger.Info("Unexpected data format for order list")
 			continue
 		}
 		orderList = append(orderList, c.transformToOrderStruct(data))
@@ -124,22 +176,39 @@ func (c *TarantoolClient) transformToOrderStruct(data []interface{}) *OrderStruc
 	}
 }
 
-// with index request
-func (c *TarantoolClient) GetOrdersByMarketAndSide(market string, side int) error {
+func (c *TarantoolClient) getOrdersByMarketAndSide(market string, side string) []*OrderStruct {
 	conn := c.conn
 
-	sideStr := fmt.Sprintf("%d", side)
 	result, err := conn.Do(
 		tarantool.NewSelectRequest(orderBookSpace).
 			Index(marketSideIndex).
-			Key([]interface{}{market, sideStr}).
+			Key([]interface{}{market, side}).
 			Iterator(tarantool.IterEq),
 	).Get()
 
 	if err != nil {
-		fmt.Println("Got an error:", err)
+		c.logger.Error("Got an error:", err)
 	}
-	fmt.Println("result", result)
 
-	return err
+	orderList := c.getTransformOrderList(result)
+
+	return orderList
+}
+
+func (c *TarantoolClient) GetOrderBook(market string) *SimplifiedOrderBook {
+	askOrderBook := c.getAskOrderBook(&OrderStruct{Market: market})
+	bidOrderBook := c.getBidOrderBook(&OrderStruct{Market: market})
+
+	return &SimplifiedOrderBook{
+		AskOrderBook: c.tranformOrderBookToPriceAndSize(askOrderBook),
+		BidOrderBook: c.tranformOrderBookToPriceAndSize(bidOrderBook),
+	}
+}
+
+func (c *TarantoolClient) tranformOrderBookToPriceAndSize(orderBook []*OrderStruct) [][]float64 {
+	orderBookList := [][]float64{}
+	for _, order := range orderBook {
+		orderBookList = append(orderBookList, []float64{order.Price, order.PositionSize})
+	}
+	return orderBookList
 }

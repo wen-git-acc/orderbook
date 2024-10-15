@@ -16,10 +16,10 @@ type PositionStruct struct {
 
 type TarantoolPositionConnInterface interface {
 	InsertPosition(position *PositionStruct) error
-	InsertMatchedPosition(position *PositionStruct) error
-	GetPosition(userID string, market string, side string) (*PositionStruct, error)
-	GetAllPositions() ([]*PositionStruct, error)
 	DeletePosition(userID string, market string, side string) error
+	InsertMatchedPosition(position *PositionStruct) error
+	GetAllPositions() ([]*PositionStruct, error)
+	GetUserPositions(userID string) ([]*PositionStruct, error)
 }
 
 const (
@@ -28,7 +28,7 @@ const (
 )
 
 func (c *TarantoolClient) InsertMatchedPosition(position *PositionStruct) error {
-	currentPosition, err := c.GetPosition(position.UserID, position.Market, position.Side)
+	currentPosition, err := c.getPosition(position.UserID, position.Market, position.Side)
 	if err != nil {
 		c.logger.Error("failed to get current position", err)
 		return err
@@ -71,8 +71,7 @@ func (c *TarantoolClient) InsertPosition(position *PositionStruct) error {
 	return nil
 }
 
-// @github help me write a get position function
-func (c *TarantoolClient) GetPosition(userID string, market string, side string) (*PositionStruct, error) {
+func (c *TarantoolClient) getPosition(userID string, market string, side string) (*PositionStruct, error) {
 	conn := c.conn
 	result, err := conn.Do(
 		tarantool.NewSelectRequest(positionSpace).
@@ -106,6 +105,22 @@ func (c *TarantoolClient) getTransformPositionList(data []interface{}) []*Positi
 			return nil
 		}
 		positions = append(positions, c.transformToPositionStruct(data))
+	}
+	return positions
+}
+
+func (c *TarantoolClient) getTransformPositionListByUserId(data []interface{}, userId string) []*PositionStruct {
+	positions := []*PositionStruct{}
+	for _, item := range data {
+		data, ok := item.([]interface{})
+		if !ok {
+			return nil
+		}
+
+		position := c.transformToPositionStruct(data)
+		if position.UserID == userId {
+			positions = append(positions, c.transformToPositionStruct(data))
+		}
 	}
 	return positions
 }
@@ -149,4 +164,21 @@ func (c *TarantoolClient) DeletePosition(userID string, market string, side stri
 		return fmt.Errorf("failed to delete position: %w", err)
 	}
 	return nil
+}
+
+func (c *TarantoolClient) GetUserPositions(userID string) ([]*PositionStruct, error) {
+	conn := c.conn
+	result, err := conn.Do(
+		tarantool.NewSelectRequest(positionSpace).
+			Iterator(tarantool.IterAll).
+			Key([]interface{}{}),
+	).Get()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user positions: %w", err)
+	}
+
+	positions := c.getTransformPositionListByUserId(result, userID)
+
+	return positions, nil
 }

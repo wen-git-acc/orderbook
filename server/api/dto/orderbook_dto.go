@@ -25,14 +25,25 @@ type InsertOrderResponse struct {
 	IsSuccess bool `json:"is_success"`
 }
 
-type GetAllOrderResponse struct {
-	Orders []*tarantool_pkg.OrderStruct `json:"orders"`
-}
-
 type GetAllPositionsResposne struct {
 	Positions []*tarantool_pkg.PositionStruct `json:"positions"`
 }
 
 type GetMarketPriceResponse struct {
 	MarketPrice float64 `json:"market_price"`
+}
+
+type DeleteOrderRequest struct {
+	UserId string  `json:"user_id"`
+	Price  float64 `json:"price"`
+	Side   string  `json:"side"`
+	Market string  `json:"market"`
+}
+
+type DeleteOrderResponse struct {
+	IsSuccess bool `json:"is_success"`
+}
+
+type GetUserPositionResponse struct {
+	Positions []*tarantool_pkg.PositionStruct `json:"positions"`
 }
