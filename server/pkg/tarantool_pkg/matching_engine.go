@@ -2,11 +2,6 @@ package tarantool_pkg
 
 import "sort"
 
-type MatchingEngineInterface interface {
-	getAskOrderBook(currentOrder *OrderStruct) []*OrderStruct
-	getBidOrderBook(currentOrder *OrderStruct) []*OrderStruct
-}
-
 // Pass in ask orderbook
 func (c *TarantoolClient) MatchingEngineForLongOrder(order *OrderStruct, orderBook []*OrderStruct) bool {
 	market := order.Market
@@ -370,7 +365,7 @@ func (c *TarantoolClient) sortOrderBook(orderbooks []*OrderStruct) [][]*OrderStr
 		orders := priceMap[price]
 		// Sort orders by createdTime
 		sort.SliceStable(orders, func(i, j int) bool {
-			return orders[i].createdTime < orders[j].createdTime
+			return orders[i].CreatedTime < orders[j].CreatedTime
 		})
 		sortedOrders = append(sortedOrders, orders)
 	}
@@ -378,15 +373,15 @@ func (c *TarantoolClient) sortOrderBook(orderbooks []*OrderStruct) [][]*OrderStr
 }
 
 func (c *TarantoolClient) GetBidOrderBook(currentOrder *OrderStruct) []*OrderStruct {
-	return c.getOrdersByMarketAndSide(currentOrder.Market, "1")
+	return c.GetOrdersByMarketAndSide(currentOrder.Market, "1")
 }
 
 func (c *TarantoolClient) GetAskOrderBook(currentOrder *OrderStruct) []*OrderStruct {
-	return c.getOrdersByMarketAndSide(currentOrder.Market, "-1")
+	return c.GetOrdersByMarketAndSide(currentOrder.Market, "-1")
 }
 
 func (c *TarantoolClient) deleteMakerOrderFromOrderBook(makerOrder *OrderStruct) {
-	userOrderBook := c.getAllOrders()
+	userOrderBook := c.GetAllOrders()
 	for _, order := range userOrderBook {
 		if order.UserId == makerOrder.UserId {
 			refundAmount := order.PositionSize * order.Price

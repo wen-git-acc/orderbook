@@ -15,7 +15,7 @@ type OrderStruct struct {
 	Side         string
 	UserId       string
 	PositionSize float64
-	createdTime  int64
+	CreatedTime  int64
 }
 
 type ExecutionDetailsStruct struct {
@@ -45,6 +45,8 @@ type TarantoolOrderBookConnInterface interface {
 	DeleteOrderByPrimaryKey(userId string, price float64, side string, market string) error
 	GetOrderByPrimaryKey(userId string, price float64, side string, market string) *OrderStruct
 	UpdateOrderByPrimaryKey(userId string, price float64, side string, market string, positionSize float64) error
+	GetAllOrders() []*OrderStruct
+	GetOrdersByMarketAndSide(market string, side string) []*OrderStruct
 }
 
 func (c *TarantoolClient) GetPrimaryKeyForOrder(order *OrderStruct) string {
@@ -141,7 +143,7 @@ func (c *TarantoolClient) DeleteOrderByPrimaryKey(userId string, price float64, 
 	return err
 }
 
-func (c *TarantoolClient) getAllOrders() []*OrderStruct {
+func (c *TarantoolClient) GetAllOrders() []*OrderStruct {
 	conn := c.conn
 
 	result, err := conn.Do(
@@ -182,11 +184,11 @@ func (c *TarantoolClient) transformToOrderStruct(data []interface{}) *OrderStruc
 		Side:         data[3].(string),
 		UserId:       data[4].(string),
 		PositionSize: c.convertToFloat64(data[5]),
-		createdTime:  int64(c.convertToInt(data[6])),
+		CreatedTime:  int64(c.convertToInt(data[6])),
 	}
 }
 
-func (c *TarantoolClient) getOrdersByMarketAndSide(market string, side string) []*OrderStruct {
+func (c *TarantoolClient) GetOrdersByMarketAndSide(market string, side string) []*OrderStruct {
 	conn := c.conn
 
 	result, err := conn.Do(

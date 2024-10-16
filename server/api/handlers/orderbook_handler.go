@@ -64,6 +64,7 @@ func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
 		context.JSON(400, gin.H{"error": "Insufficient balance"})
 		return
 	}
+
 	tarantoolClient.OrderMatcher(order)
 
 	context.JSON(200, &dto.InsertOrderResponse{
@@ -158,7 +159,6 @@ func (client *HandlersClient) GetOrderBookHandler(context *gin.Context) {
 	market := context.Param("market")
 
 	tarantoolClient := client.packages.Services.Tarantool
-
 	orders := tarantoolClient.GetOrderBook(strings.ToLower(market))
 
 	context.JSON(200, orders)
