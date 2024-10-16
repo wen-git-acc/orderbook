@@ -11,7 +11,6 @@ type TarantoolClientInterface interface {
 	TarantoolOrderBookConnInterface
 	TarantoolPositionConnInterface
 	TarantoolMarketPriceConnInterface
-	// MatchingEngineInterface
 	HelperInterface
 }
 
