@@ -30,34 +30,3 @@ func (c *TarantoolClient) convertToInt(data interface{}) int {
 	}
 	return intNum
 }
-
-func (c *TarantoolClient) calculateAccountMargin(accountEquity float64, totalAccountNotional float64) float64 {
-	if totalAccountNotional == 0 {
-		if accountEquity > 0 {
-			return float64(^uint(0) >> 1) // Return the maximum float64 value (represents high margin)
-		}
-		return 0 //if both zero
-	}
-	return accountEquity / totalAccountNotional
-}
-
-func (c *TarantoolClient) calculateAccountEquity(walletBalance float64, positions []*PositionStruct) float64 {
-	equity := walletBalance
-	for _, position := range positions {
-		marketPrice := c.GetMarketPriceByMarket(position.Market)
-		if position.Side == "1" {
-			equity += position.PositionSize * (marketPrice - position.AvgPrice)
-		} else {
-			equity += position.PositionSize * (position.AvgPrice - marketPrice)
-		}
-	}
-	return equity
-}
-
-func (c *TarantoolClient) calculateTotalAccountNotional(positions []*PositionStruct) float64 {
-	totalNotional := 0.0
-	for _, position := range positions {
-		totalNotional += position.PositionSize * c.GetMarketPriceByMarket(position.Market)
-	}
-	return totalNotional
-}

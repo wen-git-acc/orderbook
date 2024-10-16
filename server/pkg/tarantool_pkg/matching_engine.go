@@ -2,16 +2,20 @@ package tarantool_pkg
 
 import "sort"
 
-// need to put matching, and get bid and get ask orderbook to expose
+type MatchingEngineInterface interface {
+	getAskOrderBook(currentOrder *OrderStruct) []*OrderStruct
+	getBidOrderBook(currentOrder *OrderStruct) []*OrderStruct
+}
+
 // Pass in ask orderbook
-func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBook []*OrderStruct) bool {
+func (c *TarantoolClient) MatchingEngineForLongOrder(order *OrderStruct, orderBook []*OrderStruct) bool {
 	market := order.Market
 
 	if len(orderBook) == 0 {
 		return false
 	}
 
-	sortedOrderBook := c.SortOrderBook(orderBook)
+	sortedOrderBook := c.sortOrderBook(orderBook)
 	if len(sortedOrderBook) > 0 {
 		if sortedOrderBook[0][0].Price > order.Price {
 			c.InsertNewOrder(order)
@@ -138,7 +142,7 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 				if (makerOrder.PositionSize) == 0 {
 					c.DeleteOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market)
 				} else {
-					c.updateOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market, makerOrder.PositionSize)
+					c.UpdateOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market, makerOrder.PositionSize)
 				}
 				// Update Market Price
 				c.UpdateMarketPrice(market, executionPrice)
@@ -152,14 +156,14 @@ func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBo
 }
 
 // Pass in bid orderbook
-func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderBook []*OrderStruct) bool {
+func (c *TarantoolClient) MatchingEngineForShortOrder(order *OrderStruct, orderBook []*OrderStruct) bool {
 	market := order.Market
 
 	if len(orderBook) == 0 {
 		return false
 	}
 
-	sortedOrderBook := c.SortOrderBook(orderBook)
+	sortedOrderBook := c.sortOrderBook(orderBook)
 	if len(sortedOrderBook) > 0 {
 		if sortedOrderBook[len(sortedOrderBook)-1][0].Price < order.Price {
 			c.InsertNewOrder(order)
@@ -289,7 +293,7 @@ func (c *TarantoolClient) matchingEngineForShortOrder(order *OrderStruct, orderB
 				if (makerOrder.PositionSize) == 0 {
 					c.DeleteOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market)
 				} else {
-					c.updateOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market, makerOrder.PositionSize)
+					c.UpdateOrderByPrimaryKey(makerOrder.UserId, makerOrder.Price, makerOrder.Side, makerOrder.Market, makerOrder.PositionSize)
 				}
 
 				// Update Market Price
@@ -346,7 +350,7 @@ func (c *TarantoolClient) checkAccountMargin(executionDetail *ExecutionDetailsSt
 	return accountMargin >= 0.1
 }
 
-func (c *TarantoolClient) SortOrderBook(orderbooks []*OrderStruct) [][]*OrderStruct {
+func (c *TarantoolClient) sortOrderBook(orderbooks []*OrderStruct) [][]*OrderStruct {
 	priceMap := map[float64][]*OrderStruct{}
 	for _, order := range orderbooks {
 		priceMap[order.Price] = append(priceMap[order.Price], order)
@@ -373,11 +377,11 @@ func (c *TarantoolClient) SortOrderBook(orderbooks []*OrderStruct) [][]*OrderStr
 	return sortedOrders
 }
 
-func (c *TarantoolClient) getBidOrderBook(currentOrder *OrderStruct) []*OrderStruct {
+func (c *TarantoolClient) GetBidOrderBook(currentOrder *OrderStruct) []*OrderStruct {
 	return c.getOrdersByMarketAndSide(currentOrder.Market, "1")
 }
 
-func (c *TarantoolClient) getAskOrderBook(currentOrder *OrderStruct) []*OrderStruct {
+func (c *TarantoolClient) GetAskOrderBook(currentOrder *OrderStruct) []*OrderStruct {
 	return c.getOrdersByMarketAndSide(currentOrder.Market, "-1")
 }
 
@@ -391,4 +395,35 @@ func (c *TarantoolClient) deleteMakerOrderFromOrderBook(makerOrder *OrderStruct)
 			c.DeleteOrderByPrimaryKey(order.UserId, order.Price, order.Side, order.Market)
 		}
 	}
+}
+
+func (c *TarantoolClient) calculateAccountMargin(accountEquity float64, totalAccountNotional float64) float64 {
+	if totalAccountNotional == 0 {
+		if accountEquity > 0 {
+			return float64(^uint(0) >> 1) // Return the maximum float64 value (represents high margin)
+		}
+		return 0 //if both zero
+	}
+	return accountEquity / totalAccountNotional
+}
+
+func (c *TarantoolClient) calculateAccountEquity(walletBalance float64, positions []*PositionStruct) float64 {
+	equity := walletBalance
+	for _, position := range positions {
+		marketPrice := c.GetMarketPriceByMarket(position.Market)
+		if position.Side == "1" {
+			equity += position.PositionSize * (marketPrice - position.AvgPrice)
+		} else {
+			equity += position.PositionSize * (position.AvgPrice - marketPrice)
+		}
+	}
+	return equity
+}
+
+func (c *TarantoolClient) calculateTotalAccountNotional(positions []*PositionStruct) float64 {
+	totalNotional := 0.0
+	for _, position := range positions {
+		totalNotional += position.PositionSize * c.GetMarketPriceByMarket(position.Market)
+	}
+	return totalNotional
 }

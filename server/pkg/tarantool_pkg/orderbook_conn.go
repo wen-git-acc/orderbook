@@ -44,6 +44,7 @@ type TarantoolOrderBookConnInterface interface {
 	GetOrderBook(market string) *SimplifiedOrderBook
 	DeleteOrderByPrimaryKey(userId string, price float64, side string, market string) error
 	GetOrderByPrimaryKey(userId string, price float64, side string, market string) *OrderStruct
+	UpdateOrderByPrimaryKey(userId string, price float64, side string, market string, positionSize float64) error
 }
 
 func (c *TarantoolClient) GetPrimaryKeyForOrder(order *OrderStruct) string {
@@ -61,9 +62,9 @@ func (c *TarantoolClient) OrderMatcher(order *OrderStruct) (err error) {
 	}()
 
 	if order.Side == "1" {
-		c.matchingEngineForLongOrder(order, c.getAskOrderBook(order))
+		c.MatchingEngineForLongOrder(order, c.GetAskOrderBook(order))
 	} else {
-		c.matchingEngineForShortOrder(order, c.getBidOrderBook(order))
+		c.MatchingEngineForShortOrder(order, c.GetBidOrderBook(order))
 	}
 
 	return nil
@@ -105,7 +106,7 @@ func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, sid
 	return nil
 }
 
-func (c *TarantoolClient) updateOrderByPrimaryKey(userId string, price float64, side string, market string, positionSize float64) error {
+func (c *TarantoolClient) UpdateOrderByPrimaryKey(userId string, price float64, side string, market string, positionSize float64) error {
 	primaryKey := fmt.Sprintf("%s:%.2f:%s:%s", userId, price, side, market)
 	conn := c.conn
 
@@ -205,8 +206,8 @@ func (c *TarantoolClient) getOrdersByMarketAndSide(market string, side string) [
 }
 
 func (c *TarantoolClient) GetOrderBook(market string) *SimplifiedOrderBook {
-	askOrderBook := c.getAskOrderBook(&OrderStruct{Market: market})
-	bidOrderBook := c.getBidOrderBook(&OrderStruct{Market: market})
+	askOrderBook := c.GetAskOrderBook(&OrderStruct{Market: market})
+	bidOrderBook := c.GetBidOrderBook(&OrderStruct{Market: market})
 
 	return &SimplifiedOrderBook{
 		AskOrderBook: c.tranformOrderBookToPriceAndSize(askOrderBook),
