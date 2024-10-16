@@ -68,6 +68,7 @@ func main() {
 	insertMockUserProfiles(services)
 	insertMockOrderForBtc(services)
 	insertMockOrderForEth(services)
+	fillUpInitialPositionForUserA(services)
 
 	services.Logger.Info("Done!")
 }
@@ -77,6 +78,11 @@ func insertMockUserProfiles(services *service.ServiceClient) {
 
 	users := []string{"usera", "userb", "userc", "userd", "usere", "userf", "userg", "userh", "useri", "userj"}
 	for _, user := range users {
+		if user == "usera" {
+			tarantoolClient.CreateUserWalletBalance(user, 20000.00)
+			continue
+		}
+
 		tarantoolClient.CreateUserWalletBalance(user, 1000000.0)
 	}
 }
@@ -106,6 +112,13 @@ func insertMockOrderForBtc(services *service.ServiceClient) {
 			Market:       "btc",
 			Side:         "1",
 			PositionSize: 0.8,
+		},
+		{
+			UserId:       "usera",
+			Price:        22599.12,
+			Market:       "btc",
+			Side:         "1",
+			PositionSize: 3,
 		},
 		{
 			UserId:       "userd",
@@ -266,4 +279,30 @@ func insertMockOrderForEth(services *service.ServiceClient) {
 	}
 
 	tarantoolClient.UpdateMarketPrice("eth", marketPrice)
+}
+
+func fillUpInitialPositionForUserA(services *service.ServiceClient) {
+	services.Logger.Info("fillUpInitialPositionForUserA")
+	tarantoolClient := services.Services.Tarantool
+
+	positions := []*tarantool_pkg.PositionStruct{
+		{
+			UserID:       "usera",
+			Market:       "btc",
+			PositionSize: 2,
+			AvgPrice:     30000.12,
+			Side:         "1",
+		},
+		{
+			UserID:       "usera",
+			Market:       "eth",
+			PositionSize: 3,
+			AvgPrice:     2000.12,
+			Side:         "1",
+		},
+	}
+
+	for _, position := range positions {
+		tarantoolClient.InsertPosition(position)
+	}
 }

@@ -9,8 +9,8 @@ type UserDepositRequest struct {
 }
 
 type UserDepositResponse struct {
-	UserID       string  `json:"user_id"`
-	WalletAmount float64 `json:"wallet_amount"`
+	UserID string  `json:"user_id"`
+	Equity float64 `json:"equity"`
 }
 
 type InsertOrderRequest struct {

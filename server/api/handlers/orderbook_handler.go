@@ -35,22 +35,33 @@ func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
 		return
 	}
 
-	userWalletBalance := tarantoolClient.GetUserWalletBalance(userId)
-
-	if (insertOrderRequest.Price * insertOrderRequest.PositionSize) > userWalletBalance {
-		context.JSON(400, gin.H{"error": "Insufficient balance"})
-		return
-	}
-	tarantoolClient.OrderMatcher(&tarantool_pkg.OrderStruct{
+	order := &tarantool_pkg.OrderStruct{
 		UserId:       strings.ToLower(userId),
 		Price:        insertOrderRequest.Price,
 		Market:       strings.ToLower(insertOrderRequest.Market),
 		Side:         strings.ToLower(insertOrderRequest.Side),
 		PositionSize: insertOrderRequest.PositionSize,
-	})
+	}
+	// To check if there is a active opposite order
+	_, err := tarantoolClient.GetNetPositionSizeByValidatingPosition(order)
+
+	if err != nil {
+		client.logger.Error("opposite order logic error", err)
+		context.JSON(400, gin.H{"error": "Opposite order logic error"})
+		return
+	}
+
+	if order.PositionSize == 0 {
+		context.JSON(200, &dto.InsertOrderResponse{
+			IsSuccess: true,
+		})
+		return
+	}
+
+	isComplete := client.packages.Services.MatchingEngine.OrderMatcher(order)
 
 	context.JSON(200, &dto.InsertOrderResponse{
-		IsSuccess: true,
+		IsSuccess: isComplete,
 	})
 }
 
@@ -79,10 +90,6 @@ func (client *HandlersClient) CancelOrderHandler(context *gin.Context) {
 		context.JSON(500, gin.H{"error": "Internal system problem"})
 		return
 	}
-
-	walletBalance := tarantoolClient.GetUserWalletBalance(deleteOrderRequest.UserId)
-	refundedAmount := order.Price * order.PositionSize
-	tarantoolClient.UpdateUserWalletBalance(deleteOrderRequest.UserId, walletBalance+refundedAmount)
 
 	context.JSON(200, &dto.DeleteOrderResponse{
 		IsSuccess: true,
@@ -119,9 +126,17 @@ func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
 		}
 	}
 
+	positions, err := tarantoolClient.GetUserPositions(userId)
+	if err != nil {
+		client.logger.Error("failed to get user positions", err)
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+	equity := tarantoolClient.CalculateAccountEquity(tarantoolClient.GetUserWalletBalance(userId), positions)
+
 	context.JSON(200, dto.UserDepositResponse{
-		UserID:       userId,
-		WalletAmount: tarantoolClient.GetUserWalletBalance(userId),
+		UserID: userId,
+		Equity: equity,
 	})
 }
 
@@ -130,10 +145,17 @@ func (client *HandlersClient) GetUserWalletHandler(context *gin.Context) {
 	tarantoolClient := client.packages.Services.Tarantool
 	lowerUserId := strings.ToLower(userId)
 	walletAmount := tarantoolClient.GetUserWalletBalance(lowerUserId)
+	positions, err := tarantoolClient.GetUserPositions(lowerUserId)
+	if err != nil {
+		client.logger.Error("failed to get user positions", err)
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+	equity := tarantoolClient.CalculateAccountEquity(walletAmount, positions)
 
 	context.JSON(200, dto.UserDepositResponse{
-		UserID:       lowerUserId,
-		WalletAmount: walletAmount,
+		UserID: lowerUserId,
+		Equity: equity,
 	})
 }
 
@@ -141,7 +163,6 @@ func (client *HandlersClient) GetOrderBookHandler(context *gin.Context) {
 	market := context.Param("market")
 
 	tarantoolClient := client.packages.Services.Tarantool
-
 	orders := tarantoolClient.GetOrderBook(strings.ToLower(market))
 
 	context.JSON(200, orders)

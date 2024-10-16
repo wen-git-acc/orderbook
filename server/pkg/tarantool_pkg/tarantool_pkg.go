@@ -10,8 +10,8 @@ type TarantoolClientInterface interface {
 	TarantoolUserConnInterface
 	TarantoolOrderBookConnInterface
 	TarantoolPositionConnInterface
-	TarantoolPositionConnInterface
 	TarantoolMarketPriceConnInterface
+	HelperInterface
 }
 
 type TarantoolClientOptions struct {
