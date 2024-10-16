@@ -17,7 +17,6 @@ type TarantoolMarketPriceConnInterface interface {
 func (c *TarantoolClient) UpdateMarketPrice(market string, marketPrice float64) {
 	conn := c.conn
 
-	// Upsert a market price
 	_, err := conn.Do(
 		tarantool.NewUpsertRequest(marketPriceSpace).
 			Tuple([]interface{}{market, marketPrice}).

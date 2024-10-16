@@ -4,7 +4,6 @@ Orderbook - RabbitX
 
 ## Project Assumptions
 - Currency pass into the service is assumed all the same
-- There is limit/market order, maker-taker model.
 - Assuming free to use, no transaction fee charge :) as for simple implementation.
 - All userid, market name (etc,btc) will be traded as small letter.
 
@@ -173,7 +172,7 @@ Oops, the order failed and all his order in orderbook has gone!
 
 ###Why?###
 TPN = 3*1280+2*22800+1280*0.7 (his current order) = 50,336
-Unrealized P&L = (2000.12 - 1280) * 3ETH + (30000.12-22800) * 2BTC = 16560.6
+Unrealized P&L = (1280 - 2000.12 ) * 3ETH + (22800 - 30000.12) * 2BTC = -16560.6
 AEquity = 20000-16560.6 = 3439.4
 
 Account Margin = 3439.4/16560.6 = 0.068

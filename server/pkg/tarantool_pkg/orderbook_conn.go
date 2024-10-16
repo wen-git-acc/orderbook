@@ -62,7 +62,7 @@ func (c *TarantoolClient) InsertNewOrder(order *OrderStruct) error {
 	primaryKey := c.GetPrimaryKeyForOrder(order)
 
 	_, err := conn.Do(
-		tarantool.NewCallRequest(insertOrderData).Args([]interface{}{primaryKey, order.Price, order.Market, order.Side, order.UserId, order.PositionSize, timestamp}), // Ensure this matches the space format
+		tarantool.NewCallRequest(insertOrderData).Args([]interface{}{primaryKey, order.Price, order.Market, order.Side, order.UserId, order.PositionSize, timestamp}),
 	).Get()
 
 	if err != nil {
@@ -77,7 +77,7 @@ func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, sid
 
 	// Update user wallet balance
 	result, err := conn.Do(
-		tarantool.NewCallRequest(getOrderByPrimaryKey).Args([]interface{}{primaryKey}), // Ensure this matches the space format
+		tarantool.NewCallRequest(getOrderByPrimaryKey).Args([]interface{}{primaryKey}),
 	).Get()
 
 	if err != nil {
@@ -99,7 +99,7 @@ func (c *TarantoolClient) UpdateOrderByPrimaryKey(userId string, price float64, 
 	// Update user wallet balance
 	_, err := conn.Do(
 		tarantool.NewUpdateRequest(orderBookSpace).
-			Key([]interface{}{primaryKey}). // Ensure this matches the space format
+			Key([]interface{}{primaryKey}).
 			Operations(tarantool.NewOperations().Assign(5, positionSize)),
 	).Get()
 
@@ -117,7 +117,7 @@ func (c *TarantoolClient) DeleteOrderByPrimaryKey(userId string, price float64, 
 	// Update user wallet balance
 	_, err := conn.Do(
 		tarantool.NewDeleteRequest(orderBookSpace).
-			Key([]interface{}{primaryKey}), // Ensure this matches the space format
+			Key([]interface{}{primaryKey}),
 	).Get()
 
 	if err != nil {

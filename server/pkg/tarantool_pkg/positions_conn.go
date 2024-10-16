@@ -217,7 +217,7 @@ func (c *TarantoolClient) GetNetPositionSizeByValidatingPosition(order *OrderStr
 					return order, err
 				}
 
-				//Refund the amount to user
+				// Refund the amount to user
 				// Calculate the profit and loss (PnL)
 				marketPrice := c.GetMarketPriceByMarket(position.Market)
 
@@ -235,7 +235,6 @@ func (c *TarantoolClient) GetNetPositionSizeByValidatingPosition(order *OrderStr
 			} else {
 				newPositionSize = 0
 				// Reduce the current position with order size assign newPosition = 0
-				// New position will be the net position and need to deduct and refund the amount to user based on current order size
 				// Update the current position
 				if err := c.InsertPosition(&PositionStruct{
 					UserID:       userId,
