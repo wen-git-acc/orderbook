@@ -10,9 +10,9 @@ type TarantoolClientInterface interface {
 	TarantoolUserConnInterface
 	TarantoolOrderBookConnInterface
 	TarantoolPositionConnInterface
-	TarantoolPositionConnInterface
 	TarantoolMarketPriceConnInterface
-	MatchingEngineInterface
+	// MatchingEngineInterface
+	HelperInterface
 }
 
 type TarantoolClientOptions struct {

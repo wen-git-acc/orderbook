@@ -58,10 +58,10 @@ func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
 		return
 	}
 
-	tarantoolClient.OrderMatcher(order)
+	isComplete := client.packages.Services.MatchingEngine.OrderMatcher(order)
 
 	context.JSON(200, &dto.InsertOrderResponse{
-		IsSuccess: true,
+		IsSuccess: isComplete,
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/tarantool/go-tarantool/v2"
 	"github.com/wen-git-acc/orderbook/config"
 	"github.com/wen-git-acc/orderbook/pkg/logger"
+	"github.com/wen-git-acc/orderbook/pkg/matching_engine.go"
 	tarantoolPkg "github.com/wen-git-acc/orderbook/pkg/tarantool_pkg"
 
 	"github.com/wen-git-acc/orderbook/pkg/utils"
@@ -29,8 +30,9 @@ type ServiceClient struct {
 
 // All dependencies package register here
 type Services struct {
-	Utils     utils.UtilsClientInterface
-	Tarantool tarantoolPkg.TarantoolClientInterface
+	Utils          utils.UtilsClientInterface
+	Tarantool      tarantoolPkg.TarantoolClientInterface
+	MatchingEngine matching_engine.MatchingEngineInterface
 }
 
 // All database daos register here
@@ -80,6 +82,18 @@ func (s *ServiceClient) RegisterTarantoolPackage(conn *tarantool.Connection) *Se
 		Logger: s.Logger.GetLoggerWithProfile("tarantool"),
 		Conn:   conn,
 		Utils:  s.Services.Utils,
+	})
+
+	return s
+}
+
+func (s *ServiceClient) RegisterMatchingEnginePackage() *ServiceClient {
+	s.Logger.Info("Registering matching engine package")
+
+	s.Services.MatchingEngine = matching_engine.NewMatchingEngine(&matching_engine.MatchingEngineOptions{
+		Logger:    s.Logger.GetLoggerWithProfile("matching_engine"),
+		Utils:     s.Services.Utils,
+		Tarantool: s.Services.Tarantool,
 	})
 
 	return s

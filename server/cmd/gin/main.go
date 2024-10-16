@@ -66,7 +66,8 @@ func main() {
 		}).
 		RegisterDbPackage(appCfg.PgSql.Master).
 		RegisterUtilsPackage().
-		RegisterTarantoolPackage(tarantoolConn)
+		RegisterTarantoolPackage(tarantoolConn).
+		RegisterMatchingEnginePackage()
 
 	// Initialize your handlers and middleware, while injecting the dependencies here.
 	handlers := handlers.NewRouteHandlerImpl(services)

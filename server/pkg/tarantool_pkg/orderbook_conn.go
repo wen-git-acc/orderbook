@@ -40,13 +40,15 @@ const (
 
 type TarantoolOrderBookConnInterface interface {
 	InsertNewOrder(order *OrderStruct) error
-	OrderMatcher(order *OrderStruct) (err error)
+	// OrderMatcher(order *OrderStruct) (err error)
 	GetOrderBook(market string) *SimplifiedOrderBook
 	DeleteOrderByPrimaryKey(userId string, price float64, side string, market string) error
 	GetOrderByPrimaryKey(userId string, price float64, side string, market string) *OrderStruct
 	UpdateOrderByPrimaryKey(userId string, price float64, side string, market string, positionSize float64) error
 	GetAllOrders() []*OrderStruct
 	GetOrdersByMarketAndSide(market string, side string) []*OrderStruct
+	GetBidOrderBook(currentOrder *OrderStruct) []*OrderStruct
+	GetAskOrderBook(currentOrder *OrderStruct) []*OrderStruct
 }
 
 func (c *TarantoolClient) GetPrimaryKeyForOrder(order *OrderStruct) string {
@@ -55,22 +57,22 @@ func (c *TarantoolClient) GetPrimaryKeyForOrder(order *OrderStruct) string {
 	return primaryKey
 }
 
-func (c *TarantoolClient) OrderMatcher(order *OrderStruct) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			c.logger.Error("OrderMatcher panicked: %v", r)
-			err = fmt.Errorf("OrderMatcher panicked: %v", r)
-		}
-	}()
+// func (c *TarantoolClient) OrderMatcher(order *OrderStruct) (err error) {
+// 	defer func() {
+// 		if r := recover(); r != nil {
+// 			c.logger.Error("OrderMatcher panicked: %v", r)
+// 			err = fmt.Errorf("OrderMatcher panicked: %v", r)
+// 		}
+// 	}()
 
-	if order.Side == "1" {
-		c.MatchingEngineForLongOrder(order, c.GetAskOrderBook(order))
-	} else {
-		c.MatchingEngineForShortOrder(order, c.GetBidOrderBook(order))
-	}
+// 	if order.Side == "1" {
+// 		c.MatchingEngineForLongOrder(order, c.GetAskOrderBook(order))
+// 	} else {
+// 		c.MatchingEngineForShortOrder(order, c.GetBidOrderBook(order))
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (c *TarantoolClient) InsertNewOrder(order *OrderStruct) error {
 	conn := c.conn
@@ -229,4 +231,12 @@ func (c *TarantoolClient) tranformOrderBookToPriceAndSize(orderBook []*OrderStru
 	})
 
 	return orderBookList
+}
+
+func (c *TarantoolClient) GetBidOrderBook(currentOrder *OrderStruct) []*OrderStruct {
+	return c.GetOrdersByMarketAndSide(currentOrder.Market, "1")
+}
+
+func (c *TarantoolClient) GetAskOrderBook(currentOrder *OrderStruct) []*OrderStruct {
+	return c.GetOrdersByMarketAndSide(currentOrder.Market, "-1")
 }

@@ -62,7 +62,8 @@ func main() {
 		}).
 		RegisterDbPackage(appCfg.PgSql.Master).
 		RegisterUtilsPackage().
-		RegisterTarantoolPackage(tarantoolConn)
+		RegisterTarantoolPackage(tarantoolConn).
+		RegisterMatchingEnginePackage()
 
 	insertMockUserProfiles(services)
 	insertMockOrderForBtc(services)
