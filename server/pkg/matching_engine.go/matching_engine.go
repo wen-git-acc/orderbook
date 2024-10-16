@@ -9,7 +9,6 @@ import (
 )
 
 type MatchingEngineInterface interface {
-	// CalculateAccountEquity(walletBalance float64, positions []*tarantool_pkg.PositionStruct) float64
 	MatchingEngineForLongOrder(order *tarantool_pkg.OrderStruct, orderBook []*tarantool_pkg.OrderStruct) bool
 	MatchingEngineForShortOrder(order *tarantool_pkg.OrderStruct, orderBook []*tarantool_pkg.OrderStruct) bool
 	OrderMatcher(order *tarantool_pkg.OrderStruct) bool
@@ -219,7 +218,8 @@ func (c *MatchingEngine) MatchingEngineForShortOrder(order *tarantool_pkg.OrderS
 	market := order.Market
 
 	if len(orderBook) == 0 {
-		return false
+		c.tarantool.InsertNewOrder(order)
+		return true
 	}
 
 	sortedOrderBook := c.sortOrderBook(orderBook)

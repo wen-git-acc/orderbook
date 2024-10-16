@@ -4,15 +4,17 @@ Orderbook - RabbitX
 
 ## Project Assumptions
 - Currency pass into the service is assumed all the same
-- Assuming with limit, market order that identified through maker-taker model.
-- Assuming free to use, no transaction fee charge :).
+- There is limit/market order, maker-taker model.
+- Assuming free to use, no transaction fee charge :) as for simple implementation.
 - All userid, market name (etc,btc) will be traded as small letter.
 
 ## Projet Overview
 
-This project is built using the Gin framework, which handles concurrent requests by default. Hence, the trade (write) order operation is exposed as rest api endpoint.
+This project is built using the Gin framework, which handles concurrent requests by default. Together with in-memory-db (tarantool) that become stateless service that is able to scale horizontally.
 
-It supports a **maker-taker model** for order execution, as this is a simple orderbook some assumptions is given.
+There are multiple endpoints created. [Endpoints](#api-endpoints)
+
+It supports a **maker-taker model** for order execution, as this is a simple orderbook some assumptions is given above.
 
 In this model:
 
@@ -22,19 +24,29 @@ In this model:
 
 - Self match is not allowed, it will skip to next best available price.
 
-- Total equity will be returnn if /user/wallet/:userId endpoint is triggered.
+- Total account equity (balance + PnL) will be return if /user/wallet/:userId endpoint is triggered.
+
+- Support cross margin that checks if user account marigin is >10%.
+
+- Market price is determiend by last traded price.
+
+- Account margin calculation `/server/pkg/tarantool_pkg/helper.go`
+
+- PnL will realised when user closed the position by executing reverse direction.
+
+- Order will not execute and remove from order book if user account margin is detected unhealthy.
 
 ## How does the matching engine logic works (high level)?:
 
 1. Matching engine is triggered on every order submitted. Every order requested via the `POST /orderbook/orders/insert` endpoint will first pass into the matching engine after going through the first level of simple validation below.
     - Retrieve current's position to check the current state, proceed to calculate net position size if open position is at opposite direction.
-        -- With that say, placing reverse direction order will closed your current position and realized PNL.
-        -- If the order position amount is larger than open position at reverse direction, all open position PNL will be realized and update the balance. If there is net, logic will proceed to fulfiled the net position. 
+      - With that said, placing reverse direction order will closed your current position and realized PNL.
+      - If the order position amount is larger than open position at reverse direction, all open position PNL will be realized and update the balance. If there is net, logic will proceed to fulfiled the net position. 
     - Retrieve the current user's wallet balance and validate if the wallet balance is equal to or more than the submitted request amount.
 2. The order is then passed into the matching engine and sent to the respective matching engine based on the order's side (1 is long, -1 is short).
     - Two matching engine logics are created. The logic is similar with slight differences that are hard to realize; hence, two functions are created to improve readability and future modification.
     - A panic handler is added to handle any unforeseen scenarios (technically).
-3. In the matching engine (`/server/pkg/tarantool_pkh/matching_engine.go`), the order book for the respective side is retrieved.
+3. In the matching engine (`/server/pkg/matching_engine/matching_engine.go`), the order book for the respective side is retrieved.
     - For long orders, the ask order book will be retrieved according to the market (eth/btc/etc).
     - For short orders, the bid order book will be retrieved according to the market (eth/btc/etc).
     - The orderbook data is extracted and rebuilt into an **array of arrays**, with ascending price as the first layer and ordered timestamp as the second layer. Please refer to the example below:
@@ -69,7 +81,7 @@ In this model:
             - The state of position list and orderbook will be updated every iteration when there is matched.
             - The logic will update the current position by recomputing the average price and increasing the position size holdings if the position is already present in the position list with the same `side and market`.
             - Account margin (>10%) is checked every cycle to ensure there is enough to execute (match) the order. `When the account margin check fails:`
-                - Taker: revert the order, not executing and stop the engine.
+                - Taker: revert the order and current active order in orderbook, not executing and stop the engine.
                 - Maker: revert all the current order in order book.
                 - Note: When calculating the account margin, it is based on the condition after the order is executed, hence, current order position is included in the calculation as well.
     - The market price of the particular instrument/market (eth, btc, etc.) will be updated based on the latest traded price.
@@ -94,7 +106,9 @@ Please redirect to [setup](#project-navigation) for more information on how to s
 ### Future Improvement
 As this is a simple order book, many technical aspect is overlooked. For example, the use of in-memory-db to store orderbook, can be further improve to use a more efficient hashmap. Furthermore, updating and inserting data can be done via lua script to further ensure atomicity operation, and distribute the workload to db instance.
 
-In terms of code decoupling, it can further improve by decouple the db client logic with matching engine logic to maintain code integrity and promote testing.
+In terms of code decoupling, it can further improve by decouple the db client logic with matching engine logic to maintain code integrity and promote testing, currently, only implement main test for matching engine (need to focus on giving more scenario).
+
+Furthermore, need to improve by handling the calculation decimals for precision issue.
 
 ## API Endpoints
 
@@ -113,7 +127,7 @@ This project provides the following REST API endpoints, please refer to `orderbo
   - `GET /orderbook/user/:userId/positions`: View the current open positions (matched) of a user.
 
 - **Market Data**
-  - `GET /orderbook/:market`: Get the order book for a specific market (e.g., eth, btc).
+  - `GET /orderbook/:market`: Get the order book for a specific market (e.g., eth, btc). However this does not display userid, only the price and unit (following how exchange website receiving their orderbook). Alternatively, you can you tarantool command to view the full orderbook with `box.space.order_book:select{}` please refer to [tarantool cli](#connect-to-db-for-data-viewing)
   - `GET /orderbook/market-price/:market`: Get the current market price of a specific market (e.g., eth, btc).
 
 - **Position Viewing**
@@ -133,6 +147,38 @@ go run .
 3. You can run the script file as many time you wish to increase position size in each order, deposit will remain unchanged unless the value is reconfigured.
 4. Please refer guide for tarantool below if you are looking to clean/reconfigure the database.
 5. Lastly please import the postman collection for easy set up if needed :).
+
+## Set Up Environment for usera hitting account margin less than 10%
+1. Please navigate to (/server/cmd/margin-cli/main.go) to pre-populate orderbook, users balances and usera position for account margin case scenario.
+2. You can run with the launch.json file or using within the directory.
+```sh
+go run .
+```
+
+###Story Behind
+our felow usera is brave and has been a crypto trader since long ago. It lump all his money and currently holding btc and eth as below:
+
+eth: 3 position size at price 2000.12 long
+btc: 2 position size at price 30000.12 long
+
+With only 20000 in his wallet balance now.
+
+The market price currently is:
+eth: 1280
+btc: 22800
+
+Meanwhile, usera has opened multiple order in the past...for somereason he decided to make an order buying the lowest ask eth currently in the orderbook. He is placing 0.7eth at 1285.5 price.
+
+Oops, the order failed and all his order in orderbook has gone!
+
+###Why?###
+TPN = 3*1280+2*22800+1280*0.7 (his current order) = 50,336
+Unrealized P&L = (2000.12 - 1280) * 3ETH + (30000.12-22800) * 2BTC = 16560.6
+AEquity = 20000-16560.6 = 3439.4
+
+Account Margin = 3439.4/16560.6 = 0.068
+
+Less than 0.1 hence, all his order closed!
 
 ## Test Command
 
@@ -163,9 +209,6 @@ This allowed you to run the project and debug the code in Visual Studio Code.
 
 ```json
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.1.0",
     "configurations": [
       {
@@ -182,7 +225,7 @@ This allowed you to run the project and debug the code in Visual Studio Code.
         "program": "${workspaceFolder}/server/cmd/gin"
       },
       {
-        "name": "Launch Go Cli",
+        "name": "To Populate Orderbook Data",
         "type": "go",
         "request": "launch",
         "mode": "auto",
@@ -193,6 +236,19 @@ This allowed you to run the project and debug the code in Visual Studio Code.
           "TARANTOOL_PASSWORD": "123456"
         },
         "program": "${workspaceFolder}/server/cmd/cli"
+      },
+      {
+        "name": "To Populate Orderbook Data to simulate account margin scenario",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "env": {
+          "DEBUG": "true",
+          "MODE": "development",
+          "SECRET_POSTGRES_DB_PASSWORD": "postgres_password",
+          "TARANTOOL_PASSWORD": "123456"
+        },
+        "program": "${workspaceFolder}/server/cmd/margin_cli"
       }
     ]
 }

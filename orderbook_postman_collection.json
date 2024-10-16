@@ -16,7 +16,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"user_id\": \"userB\",\n    \"deposit_amount\": 1232.12\n}",
+							"raw": "{\n    \"user_id\": \"usera\",\n    \"deposit_amount\": 10000.00\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -48,7 +48,21 @@
 					"name": "Get Wallet Details",
 					"request": {
 						"method": "GET",
-						"header": []
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/orderbook/user/wallet/usera",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"orderbook",
+								"user",
+								"wallet",
+								"usera"
+							]
+						}
 					},
 					"response": []
 				}
@@ -64,7 +78,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"user_id\": \"userA\",\n    \"price\": 1234.2,\n    \"market\": \"eth\",\n    \"side\": \"-1\",\n    \"position_size\": 12\n}",
+							"raw": "{\n    \"user_id\": \"usera\",\n    \"price\": 1285.5,\n    \"market\": \"eth\",\n    \"side\": \"1\",\n    \"position_size\": 0.7\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -72,7 +86,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8080/orderbook/orders/indert",
+							"raw": "http://localhost:8080/orderbook/orders/insert",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -81,7 +95,7 @@
 							"path": [
 								"orderbook",
 								"orders",
-								"indert"
+								"insert"
 							]
 						}
 					},
@@ -94,7 +108,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"user_id\": \"d\",\n    \"price\": 1633.2,\n    \"side\": \"-1\",\n    \"market\": \"eth\"\n}",
+							"raw": "{\n    \"user_id\": \"userf\",\n    \"price\": 1285.5,\n    \"side\": \"-1\",\n    \"market\": \"eth\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -126,7 +140,19 @@
 					"name": "Orderbook",
 					"request": {
 						"method": "GET",
-						"header": []
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/orderbook/eth",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"orderbook",
+								"eth"
+							]
+						}
 					},
 					"response": []
 				}
@@ -177,7 +203,7 @@
 							"variable": [
 								{
 									"key": "userId",
-									"value": "e"
+									"value": "useri"
 								}
 							]
 						}
@@ -193,7 +219,20 @@
 					"name": "Get Marketprice",
 					"request": {
 						"method": "GET",
-						"header": []
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/orderbook/market-price/eth",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"orderbook",
+								"market-price",
+								"eth"
+							]
+						}
 					},
 					"response": []
 				}
