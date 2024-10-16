@@ -20,6 +20,7 @@ type TarantoolPositionConnInterface interface {
 	InsertMatchedPosition(position *PositionStruct) error
 	GetAllPositions() ([]*PositionStruct, error)
 	GetUserPositions(userID string) ([]*PositionStruct, error)
+	GetNetPositionSizeByValidatingPosition(order *OrderStruct) (*OrderStruct, error)
 }
 
 const (
@@ -47,7 +48,6 @@ func (c *TarantoolClient) InsertMatchedPosition(position *PositionStruct) error 
 
 }
 
-// @github help me write a insert position function
 func (c *TarantoolClient) InsertPosition(position *PositionStruct) error {
 	conn := c.conn
 	_, err := conn.Do(
@@ -181,4 +181,81 @@ func (c *TarantoolClient) GetUserPositions(userID string) ([]*PositionStruct, er
 	positions := c.getTransformPositionListByUserId(result, userID)
 
 	return positions, nil
+}
+
+func (c *TarantoolClient) GetNetPositionSizeByValidatingPosition(order *OrderStruct) (*OrderStruct, error) {
+	// Get all the positions for the user
+	userId := order.UserId
+	positions, err := c.GetUserPositions(userId)
+
+	if err != nil {
+		c.logger.Error("failed to get retrieve existings positions", err)
+		return order, err
+	}
+
+	oppositeSide := "1"
+
+	if order.Side == oppositeSide {
+		oppositeSide = "-1"
+	}
+
+	newPositionSize := 0.0
+	netPositionSize := 0.0
+	isOppositePositionFound := false
+	for _, position := range positions {
+		if position.Market == order.Market && position.Side == oppositeSide {
+			userWalletBalance := c.GetUserWalletBalance(userId)
+			isOppositePositionFound = true
+			// Update the order
+			netPositionSize = position.PositionSize - order.PositionSize
+			if netPositionSize <= 0 {
+				newPositionSize = -netPositionSize
+
+				// Close the current position as it is opposite direction
+				if err := c.DeletePosition(userId, position.Market, position.Side); err != nil {
+					c.logger.Error("failed to delete position", err)
+					return order, err
+				}
+
+				//Refund the amount to user
+				// Calculate the profit and loss (PnL)
+				marketPrice := c.GetMarketPriceByMarket(position.Market)
+				pnl := (marketPrice - position.AvgPrice) * position.PositionSize
+
+				// Refund the amount to user
+				refundAmount := position.PositionSize*position.AvgPrice + pnl
+				c.UpdateUserWalletBalance(userId, userWalletBalance+refundAmount)
+
+			} else {
+				newPositionSize = 0
+				// Reduce the current position with order size assign newPosition = 0
+				// New position will be the net position and need to deduct and refund the amount to user based on current order size
+				// Update the current position
+				if err := c.InsertPosition(&PositionStruct{
+					UserID:       userId,
+					Market:       position.Market,
+					PositionSize: netPositionSize,
+					AvgPrice:     position.AvgPrice,
+					Side:         position.Side,
+				}); err != nil {
+					c.logger.Error("failed to insert position", err)
+					return order, err
+				}
+
+				//Calculate the profit and lost (PnL)
+				marketPrice := c.GetMarketPriceByMarket(position.Market)
+				pnl := (marketPrice - position.AvgPrice) * order.PositionSize
+
+				refundAmount := order.PositionSize*position.AvgPrice + pnl
+				c.UpdateUserWalletBalance(userId, userWalletBalance+refundAmount)
+			}
+		}
+	}
+
+	if isOppositePositionFound {
+		order.PositionSize = newPositionSize
+	}
+
+	// If order position size is 0, it will not trigger the matching engine.
+	return order, nil
 }

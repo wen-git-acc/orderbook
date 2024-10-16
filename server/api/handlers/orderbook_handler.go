@@ -35,19 +35,36 @@ func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
 		return
 	}
 
-	userWalletBalance := tarantoolClient.GetUserWalletBalance(userId)
-
-	if (insertOrderRequest.Price * insertOrderRequest.PositionSize) > userWalletBalance {
-		context.JSON(400, gin.H{"error": "Insufficient balance"})
-		return
-	}
-	tarantoolClient.OrderMatcher(&tarantool_pkg.OrderStruct{
+	order := &tarantool_pkg.OrderStruct{
 		UserId:       strings.ToLower(userId),
 		Price:        insertOrderRequest.Price,
 		Market:       strings.ToLower(insertOrderRequest.Market),
 		Side:         strings.ToLower(insertOrderRequest.Side),
 		PositionSize: insertOrderRequest.PositionSize,
-	})
+	}
+	// To check if there is a active opposite order
+	_, err := tarantoolClient.GetNetPositionSizeByValidatingPosition(order)
+
+	if err != nil {
+		client.logger.Error("opposite order logic error", err)
+		context.JSON(400, gin.H{"error": "Opposite order logic error"})
+		return
+	}
+
+	if order.PositionSize == 0 {
+		context.JSON(200, &dto.InsertOrderResponse{
+			IsSuccess: true,
+		})
+		return
+	}
+
+	userWalletBalance := tarantoolClient.GetUserWalletBalance(userId)
+
+	if (insertOrderRequest.Price * insertOrderRequest.PositionSize) >= userWalletBalance {
+		context.JSON(400, gin.H{"error": "Insufficient balance"})
+		return
+	}
+	tarantoolClient.OrderMatcher(order)
 
 	context.JSON(200, &dto.InsertOrderResponse{
 		IsSuccess: true,

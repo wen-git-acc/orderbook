@@ -2,6 +2,7 @@ package tarantool_pkg
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/tarantool/go-tarantool/v2"
@@ -104,7 +105,6 @@ func (c *TarantoolClient) GetOrderByPrimaryKey(userId string, price float64, sid
 	return nil
 }
 
-// TODO need to test
 func (c *TarantoolClient) updateOrderByPrimaryKey(userId string, price float64, side string, market string, positionSize float64) error {
 	primaryKey := fmt.Sprintf("%s:%.2f:%s:%s", userId, price, side, market)
 	conn := c.conn
@@ -219,5 +219,11 @@ func (c *TarantoolClient) tranformOrderBookToPriceAndSize(orderBook []*OrderStru
 	for _, order := range orderBook {
 		orderBookList = append(orderBookList, []float64{order.Price, order.PositionSize})
 	}
+
+	// Sort the orderBookList by price (first element of each slice)
+	sort.Slice(orderBookList, func(i, j int) bool {
+		return orderBookList[i][0] < orderBookList[j][0]
+	})
+
 	return orderBookList
 }

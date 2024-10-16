@@ -40,11 +40,11 @@ func (c *TarantoolClient) IsUserRegistered(userID string) bool {
 	return false
 }
 
-func (c *TarantoolClient) GetUserWalletBalance(user_id string) float64 {
+func (c *TarantoolClient) GetUserWalletBalance(userId string) float64 {
 	// Get user wallet balance
 	conn := c.conn
 	result, err := conn.Do(
-		tarantool.NewCallRequest(getUserWalletBalance).Args([]interface{}{user_id}), // Ensure this matches the space format
+		tarantool.NewCallRequest(getUserWalletBalance).Args([]interface{}{userId}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {
@@ -62,11 +62,11 @@ func (c *TarantoolClient) GetUserWalletBalance(user_id string) float64 {
 	return 0
 }
 
-func (c *TarantoolClient) UpdateUserWalletBalance(user_id string, balance float64) error {
+func (c *TarantoolClient) UpdateUserWalletBalance(userId string, balance float64) error {
 	// Update user wallet balance
 	conn := c.conn
 	_, err := conn.Do(
-		tarantool.NewCallRequest(updateUserWalletBalance).Args([]interface{}{user_id, balance}), // Ensure this matches the space format
+		tarantool.NewCallRequest(updateUserWalletBalance).Args([]interface{}{userId, balance}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {
@@ -76,11 +76,11 @@ func (c *TarantoolClient) UpdateUserWalletBalance(user_id string, balance float6
 	return err
 }
 
-func (c *TarantoolClient) CreateUserWalletBalance(user_id string, balance float64) error {
+func (c *TarantoolClient) CreateUserWalletBalance(userId string, balance float64) error {
 	// Update user wallet balance
 	conn := c.conn
 	_, err := conn.Do(
-		tarantool.NewCallRequest(createUserWalltBalance).Args([]interface{}{user_id, balance}), // Ensure this matches the space format
+		tarantool.NewCallRequest(createUserWalltBalance).Args([]interface{}{userId, balance}), // Ensure this matches the space format
 	).Get()
 
 	if err != nil {

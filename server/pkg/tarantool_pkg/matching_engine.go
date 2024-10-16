@@ -2,6 +2,7 @@ package tarantool_pkg
 
 import "sort"
 
+// need to put matching, and get bid and get ask orderbook to expose
 // Pass in ask orderbook
 func (c *TarantoolClient) matchingEngineForLongOrder(order *OrderStruct, orderBook []*OrderStruct) bool {
 	market := order.Market
@@ -311,7 +312,9 @@ func (c *TarantoolClient) checkAccountMargin(executionDetail *ExecutionDetailsSt
 
 	userWalletBalance := c.GetUserWalletBalance(executionDetail.UserId)
 
-	if userWalletBalance == 0 {
+	if !isMaker && (userWalletBalance == 0 || (userWalletBalance < executionDetail.ExecutionPositionSize*executionDetail.ExecutionPrice)) {
+		// User has insufficient balance
+		// Maker wallet balance is already deducted when writing into orderbook.
 		return false
 	}
 
