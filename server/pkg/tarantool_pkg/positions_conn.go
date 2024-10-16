@@ -220,11 +220,17 @@ func (c *TarantoolClient) GetNetPositionSizeByValidatingPosition(order *OrderStr
 				//Refund the amount to user
 				// Calculate the profit and loss (PnL)
 				marketPrice := c.GetMarketPriceByMarket(position.Market)
-				pnl := (marketPrice - position.AvgPrice) * position.PositionSize
 
-				// Refund the amount to user
-				refundAmount := position.PositionSize*position.AvgPrice + pnl
-				c.UpdateUserWalletBalance(userId, userWalletBalance+refundAmount)
+				// If is long position, the side factor is 1, else -1
+				sideFactor := 1.0
+				if position.Side == "-1" {
+					sideFactor = -1.0
+				}
+
+				pnl := sideFactor * (marketPrice - position.AvgPrice) * position.PositionSize
+
+				// Update pnl to user balance as position closed
+				c.UpdateUserWalletBalance(userId, userWalletBalance+pnl)
 
 			} else {
 				newPositionSize = 0
@@ -244,10 +250,16 @@ func (c *TarantoolClient) GetNetPositionSizeByValidatingPosition(order *OrderStr
 
 				//Calculate the profit and lost (PnL)
 				marketPrice := c.GetMarketPriceByMarket(position.Market)
-				pnl := (marketPrice - position.AvgPrice) * order.PositionSize
 
-				refundAmount := order.PositionSize*position.AvgPrice + pnl
-				c.UpdateUserWalletBalance(userId, userWalletBalance+refundAmount)
+				sideFactor := 1.0
+				if position.Side == "-1" {
+					sideFactor = -1.0
+				}
+
+				pnl := sideFactor * (marketPrice - position.AvgPrice) * order.PositionSize
+
+				// Update pnl to user balance as position closed
+				c.UpdateUserWalletBalance(userId, userWalletBalance+pnl)
 			}
 		}
 	}

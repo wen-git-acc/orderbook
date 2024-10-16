@@ -58,13 +58,6 @@ func (client *HandlersClient) InsertOrderHandler(context *gin.Context) {
 		return
 	}
 
-	userWalletBalance := tarantoolClient.GetUserWalletBalance(userId)
-
-	if (insertOrderRequest.Price * insertOrderRequest.PositionSize) >= userWalletBalance {
-		context.JSON(400, gin.H{"error": "Insufficient balance"})
-		return
-	}
-
 	tarantoolClient.OrderMatcher(order)
 
 	context.JSON(200, &dto.InsertOrderResponse{
@@ -97,10 +90,6 @@ func (client *HandlersClient) CancelOrderHandler(context *gin.Context) {
 		context.JSON(500, gin.H{"error": "Internal system problem"})
 		return
 	}
-
-	walletBalance := tarantoolClient.GetUserWalletBalance(deleteOrderRequest.UserId)
-	refundedAmount := order.Price * order.PositionSize
-	tarantoolClient.UpdateUserWalletBalance(deleteOrderRequest.UserId, walletBalance+refundedAmount)
 
 	context.JSON(200, &dto.DeleteOrderResponse{
 		IsSuccess: true,
@@ -137,9 +126,17 @@ func (client *HandlersClient) UserDepositHandler(context *gin.Context) {
 		}
 	}
 
+	positions, err := tarantoolClient.GetUserPositions(userId)
+	if err != nil {
+		client.logger.Error("failed to get user positions", err)
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+	equity := tarantoolClient.CalculateAccountEquity(tarantoolClient.GetUserWalletBalance(userId), positions)
+
 	context.JSON(200, dto.UserDepositResponse{
-		UserID:       userId,
-		WalletAmount: tarantoolClient.GetUserWalletBalance(userId),
+		UserID: userId,
+		Equity: equity,
 	})
 }
 
@@ -148,10 +145,17 @@ func (client *HandlersClient) GetUserWalletHandler(context *gin.Context) {
 	tarantoolClient := client.packages.Services.Tarantool
 	lowerUserId := strings.ToLower(userId)
 	walletAmount := tarantoolClient.GetUserWalletBalance(lowerUserId)
+	positions, err := tarantoolClient.GetUserPositions(lowerUserId)
+	if err != nil {
+		client.logger.Error("failed to get user positions", err)
+		context.JSON(500, gin.H{"error": "Internal system problem"})
+		return
+	}
+	equity := tarantoolClient.CalculateAccountEquity(walletAmount, positions)
 
 	context.JSON(200, dto.UserDepositResponse{
-		UserID:       lowerUserId,
-		WalletAmount: walletAmount,
+		UserID: lowerUserId,
+		Equity: equity,
 	})
 }
 

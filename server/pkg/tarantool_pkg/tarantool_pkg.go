@@ -12,6 +12,7 @@ type TarantoolClientInterface interface {
 	TarantoolPositionConnInterface
 	TarantoolPositionConnInterface
 	TarantoolMarketPriceConnInterface
+	MatchingEngineInterface
 }
 
 type TarantoolClientOptions struct {
