@@ -114,7 +114,7 @@ Furthermore, need to improve by handling the calculation decimals for precision 
 
 In terms of margin threshold, considering attach specific margin threshold, currently it is hardcoded in logic. Considering assign the margin threshold to user level in db, hence, everyone can have different margin threshod according to account type!
 
-Lastly, order book endpoint is ready and can be exposed to ui through pub-sub model or websocket connection like how usually exchanges doing it.
+Lastly, order book endpoint is ready and can be exposed to ui through pub-sub model or websocket connection like how usually exchanges doing it. The mechanism pushing the update at every new order creation or matched.
 
 ## API Endpoints
 
