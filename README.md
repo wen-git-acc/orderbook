@@ -5,7 +5,7 @@ Orderbook - RabbitX
 ## Project Assumptions
 - Currency pass into the service is assumed all the same
 - Assuming free to use, no transaction fee charge :) as for simple implementation.
-- All userid, market name (etc,btc) will be traded as small letter.
+- All userid, market name (eth,btc) will be traded as small letter.
 
 ## Projet Overview
 
@@ -38,9 +38,10 @@ In this model:
 ## How does the matching engine logic works (high level)?:
 
 1. Matching engine is triggered on every order submitted. Every order requested via the `POST /orderbook/orders/insert` endpoint will first pass into the matching engine after going through the first level of simple validation below.
-    - Retrieve current's position to check the current state, proceed to calculate net position size if open position is at opposite direction.
+    - Retrieve current's position to check the current state, proceed to calculate net position size if active position is at opposite direction.
       - With that said, placing reverse direction order will closed your current position and realized PNL.
-      - If the order position amount is larger than open position at reverse direction, all open position PNL will be realized and update the balance. If there is net, logic will proceed to fulfiled the net position. 
+      - If the order position amount is larger than active position at reverse direction, all active position PNL will be realized and update the balance. The logic will then proceed to fulfiled the net position. 
+      - If the order position amount is smaller than active position at reverse direction, the active position PNL will be realized based on how much order position user's has given. 
     - Retrieve the current user's wallet balance and validate if the wallet balance is equal to or more than the submitted request amount.
 2. The order is then passed into the matching engine and sent to the respective matching engine based on the order's side (1 is long, -1 is short).
     - Two matching engine logics are created. The logic is similar with slight differences that are hard to realize; hence, two functions are created to improve readability and future modification.
@@ -99,6 +100,8 @@ This assignment is build with gin framework to ensure lightweighted, fast and co
 ### DB
 This aassigment is build together with Tarantool as the in-memory-db, In memory db helps to store the state of the operations (e.g. orderbook state, market price state, active positions, etc). This ensure the service is stateless and does not cause any issue at the point of failure. Staging and Production instances is expected to run at different VM.
 
+However, the db spaces are design to hold n number of market (eth,btc, and more), hence, every new market can be open anytime.
+
 ### Project Setup
 Please redirect to [setup](#project-navigation) for more information on how to set up and test in your local environment. Please read [auto populate orderbook and user data](#set-up-environment) to kick start your testing there is a cli set up for auto data population.
 
@@ -108,6 +111,9 @@ As this is a simple order book, many technical aspect is overlooked. For example
 In terms of code decoupling, it can further improve by decouple the db client logic with matching engine logic to maintain code integrity and promote testing, currently, only implement main test for matching engine (need to focus on giving more scenario).
 
 Furthermore, need to improve by handling the calculation decimals for precision issue.
+
+
+In terms of margin threshold, considering attach specific margin threshold, currently it is hardcoded in logic. Considering assign the margin threshold to user level in db, hence, everyone can have different margin threshod according to account type!
 
 ## API Endpoints
 
@@ -123,14 +129,14 @@ This project provides the following REST API endpoints, please refer to `orderbo
 - **User Management**
   - `POST /orderbook/user/deposit`: Make a deposit as an existing or new user.
   - `GET /orderbook/user/wallet/:userId`: Get the current equity balance of a user.
-  - `GET /orderbook/user/:userId/positions`: View the current open positions (matched) of a user.
+  - `GET /orderbook/user/:userId/positions`: View the active open positions (matched) of a user.
 
 - **Market Data**
   - `GET /orderbook/:market`: Get the order book for a specific market (e.g., eth, btc). However this does not display userid, only the price and unit (following how exchange website receiving their orderbook). Alternatively, you can you tarantool command to view the full orderbook with `box.space.order_book:select{}` please refer to [tarantool cli](#connect-to-db-for-data-viewing)
   - `GET /orderbook/market-price/:market`: Get the current market price of a specific market (e.g., eth, btc).
 
 - **Position Viewing**
-  - `GET /orderbook/view/positions`: View all open positions regardless of the user.
+  - `GET /orderbook/view/positions`: View all active positions regardless of the user.
 
 
 ## Project Navigation
@@ -177,7 +183,7 @@ AEquity = 20000-16560.6 = 3439.4
 
 Account Margin = 3439.4/16560.6 = 0.068
 
-Less than 0.1 hence, all his order closed!
+Less than 0.1 hence, all his order closed! But his active positions remain
 
 ## Test Command
 
@@ -327,7 +333,7 @@ box.space.order_book:select{}
 ### Spaces
 Total 4 Spaces created:
 1. users, hold userid and equity balance
-2. positions, hold current opening positions
+2. positions, hold current active positions
 3. market_price, hold market price for the market (eth, btc etc.)
 4. order_book, hold all orders data.
 
