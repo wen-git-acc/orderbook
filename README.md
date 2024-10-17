@@ -161,28 +161,28 @@ go run .
 go run .
 ```
 
-###Story Behind
-our felow usera is brave and has been a crypto trader since long ago. It lump all his money and currently holding btc and eth as below:
+###Story Behind###<br><br>
+our felow usera is brave and has been a crypto trader since long ago. It lump all his money and currently holding btc and eth as below:<br><br>
 
-eth: 3 position size at price 2000.12 long
-btc: 2 position size at price 30000.12 long
+eth: 3 position size at price 2000.12 long<br>
+btc: 2 position size at price 30000.12 long<br><br>
 
-With only 20000 in his wallet balance now.
+With only 20000 in his wallet balance now.<br><br>
 
-The market price currently is:
-eth: 1280
-btc: 22800
+The market price currently is:<br>
+eth: 1280<br>
+btc: 22800<br><br>
 
-Meanwhile, usera has opened multiple order in the past...for somereason he decided to make an order buying the lowest ask eth currently in the orderbook. He is placing 0.7eth at 1285.5 price.
+Meanwhile, usera has opened multiple order in the past...for somereason he decided to make an order buying the lowest ask eth currently in the orderbook. He is placing 0.7eth at 1285.5 price.<br><br>
 
-Oops, the order failed and all his order in orderbook has gone!
+Oops, the order failed and all his order in orderbook has gone! <br><br>
 
-###Why?###
-TPN = 3*1280+2*22800+1280*0.7 (his current order) = 50,336
-Unrealized P&L = (1280 - 2000.12 ) * 3ETH + (22800 - 30000.12) * 2BTC = -16560.6
-AEquity = 20000-16560.6 = 3439.4
+###Why?###<br>
+TPN = 3*1280+2*22800+1280*0.7 (his current order) = 50,336<br>
+Unrealized P&L = (1280 - 2000.12 ) * 3ETH + (22800 - 30000.12) * 2BTC = -16560.6<br>
+AEquity = 20000-16560.6 = 3439.4<br><br>
 
-Account Margin = 3439.4/16560.6 = 0.068
+Account Margin = 3439.4/16560.6 = 0.068<br><br>
 
 Less than 0.1 hence, all his order closed! But his active positions remain
 
