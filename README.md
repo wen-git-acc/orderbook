@@ -25,9 +25,9 @@ In this model:
 
 - Total account equity (balance + PnL) will be return if /user/wallet/:userId endpoint is triggered.
 
-- Support cross margin that checks if user account marigin is >10%.
+- Support cross margin that checks if user account margin is >10%.
 
-- Market price is determiend by last traded price.
+- Market price is determiend by lastest traded price.
 
 - Account margin calculation `/server/pkg/tarantool_pkg/helper.go`
 
@@ -42,8 +42,8 @@ In this model:
       - With that said, placing reverse direction order will closed your current position and realized PNL.
       - If the order position amount is larger than active position at reverse direction, all active position PNL will be realized and update the balance. The logic will then proceed to fulfiled the net position. 
       - If the order position amount is smaller than active position at reverse direction, the active position PNL will be realized based on how much order position user's has given. 
-    - Retrieve the current user's wallet balance and validate if the wallet balance is equal to or more than the submitted request amount.
-2. The order is then passed into the matching engine and sent to the respective matching engine based on the order's side (1 is long, -1 is short).
+      - The order execution when end if net position size is 0.
+2. If order execution continues, the order is then passed into the matching engine and sent to the respective matching engine based on the order's side (1 is long, -1 is short).
     - Two matching engine logics are created. The logic is similar with slight differences that are hard to realize; hence, two functions are created to improve readability and future modification.
     - A panic handler is added to handle any unforeseen scenarios (technically).
 3. In the matching engine (`/server/pkg/matching_engine/matching_engine.go`), the order book for the respective side is retrieved.
@@ -83,7 +83,7 @@ In this model:
             - Account margin (>10%) is checked every cycle to ensure there is enough to execute (match) the order. `When the account margin check fails:`
                 - Taker: revert the order and current active order in orderbook, not executing and stop the engine.
                 - Maker: revert all the current order in order book.
-                - Note: When calculating the account margin, it is based on the condition after the order is executed, hence, current order position is included in the calculation as well.
+                - Note: When calculating the account margin, it is based on the condition after the order is executed, hence, current order position is included in the calculation as well. Additionally, account margin checks happen for maker order as well.
     - The market price of the particular instrument/market (eth, btc, etc.) will be updated based on the latest traded price.
 
 Other Note:
@@ -98,9 +98,9 @@ Other Note:
 This assignment is build with gin framework to ensure lightweighted, fast and concurrent operation
 
 ### DB
-This aassigment is build together with Tarantool as the in-memory-db, In memory db helps to store the state of the operations (e.g. orderbook state, market price state, active positions, etc). This ensure the service is stateless and does not cause any issue at the point of failure. Staging and Production instances is expected to run at different VM.
+This assignment is build together with Tarantool as the in-memory-db, In memory db helps to store the state of the operations (e.g. orderbook state, market price state, active positions, etc). This ensure the service is stateless and does not cause any issue at the point of failure. Staging and Production instances is expected to run at different VM.
 
-However, the db spaces are design to hold n number of market (eth,btc, and more), hence, every new market can be open anytime.
+However, the db spaces are design to hold n number of market (eth,btc, and more), hence, it is scalable to adapt increasing market (besides just eth and btc).
 
 ### Project Setup
 Please redirect to [setup](#project-navigation) for more information on how to set up and test in your local environment. Please read [auto populate orderbook and user data](#set-up-environment) to kick start your testing there is a cli set up for auto data population.
@@ -112,8 +112,9 @@ In terms of code decoupling, it can further improve by decouple the db client lo
 
 Furthermore, need to improve by handling the calculation decimals for precision issue.
 
-
 In terms of margin threshold, considering attach specific margin threshold, currently it is hardcoded in logic. Considering assign the margin threshold to user level in db, hence, everyone can have different margin threshod according to account type!
+
+Lastly, order book endpoint is ready and can be exposed to ui through pub-sub model or websocket connection like how usually exchanges doing it.
 
 ## API Endpoints
 
