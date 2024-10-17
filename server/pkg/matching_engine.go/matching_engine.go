@@ -438,34 +438,3 @@ func (c *MatchingEngine) deleteOrderFromOrderBook(makerOrder *tarantool_pkg.Orde
 		}
 	}
 }
-
-// func (c *MatchingEngine) calculateAccountMargin(accountEquity float64, totalAccountNotional float64) float64 {
-// 	if totalAccountNotional == 0 {
-// 		if accountEquity > 0 {
-// 			return float64(^uint(0) >> 1) // Return the maximum float64 value (represents high margin)
-// 		}
-// 		return 0 //if both zero
-// 	}
-// 	return accountEquity / totalAccountNotional
-// }
-
-// func (c *MatchingEngine) CalculateAccountEquity(walletBalance float64, positions []*tarantool_pkg.PositionStruct) float64 {
-// 	equity := walletBalance
-// 	for _, position := range positions {
-// 		marketPrice := c.tarantool.GetMarketPriceByMarket(position.Market)
-// 		if position.Side == "1" {
-// 			equity += position.PositionSize * (marketPrice - position.AvgPrice)
-// 		} else {
-// 			equity += position.PositionSize * (position.AvgPrice - marketPrice)
-// 		}
-// 	}
-// 	return equity
-// }
-
-// func (c *MatchingEngine) calculateTotalAccountNotional(positions []*tarantool_pkg.PositionStruct) float64 {
-// 	totalNotional := 0.0
-// 	for _, position := range positions {
-// 		totalNotional += position.PositionSize * c.tarantool.GetMarketPriceByMarket(position.Market)
-// 	}
-// 	return totalNotional
-// }
